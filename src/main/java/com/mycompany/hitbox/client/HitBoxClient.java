@@ -1,5 +1,7 @@
 package com.mycompany.hitbox.client;
 
+import com.mycompany.twitch.client.TwitchChatListener;
+import com.mycompany.twitch.client.TwitchIRCClient;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.StaxDriver;
 
@@ -40,15 +42,19 @@ import org.java_websocket.drafts.Draft_10;
 import org.java_websocket.handshake.ServerHandshake;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xml.sax.InputSource;
 
 /**
- * Based on https://www.reddit.com/r/hitbox/comments/2y27nm/tutorial_connecting_to_the_hitbox_chat_with/
+ * Based on
+ * https://www.reddit.com/r/hitbox/comments/2y27nm/tutorial_connecting_to_the_hitbox_chat_with/
  *
  * @author mark
  */
 public class HitBoxClient extends WebSocketClient {
 
+    private static final Logger log = LoggerFactory.getLogger(HitBoxClient.class);
     public static final File CFG_FILE = new File(new File(System.getProperty("user.home"), ".hitbox-java-client"), "config.xml");
     public static Config config = new Config();
     public long chatSessionStartingTime = System.currentTimeMillis();
@@ -69,7 +75,7 @@ public class HitBoxClient extends WebSocketClient {
             reader.close();
             return buffer.toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("", e);
         }
         return null;
     }
@@ -100,10 +106,9 @@ public class HitBoxClient extends WebSocketClient {
             }
             try (DataInputStream is = new DataInputStream(connection.getInputStream())) {
                 token = new JSONObject(is.readLine()).get("authToken").toString();
-                //System.out.println(token);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("", e);
         }
         return token;
     }
@@ -131,22 +136,21 @@ public class HitBoxClient extends WebSocketClient {
 
             boolean messageRecognized = false;
 
-            //System.out.println(message);
+            log.trace(message);
             if (message.indexOf("{") == -1) {
                 return;
             }
             JSONObject jsonMessage = new JSONObject(message.substring(message.indexOf("{")));
-            //System.out.println(jsonMessage.toString(2));
+            log.trace(jsonMessage.toString(2));
             String name = jsonMessage.get("name").toString();
-            //System.out.println(name);
+            log.trace(name);
             if (name.equals("message")) {
-                //System.out.println(".");
                 JSONArray args = new JSONArray(jsonMessage.get("args").toString());
-                //System.out.println(args.length());
+                log.trace(""+args.length());
                 for (int i = 0; i < args.length(); i++) {
                     JSONObject argsElement = new JSONObject(args.getString(i));
                     JSONObject params = argsElement.getJSONObject("params");
-                    //System.out.println(argsElement.toString(2));
+                    log.trace(argsElement.toString(2));
                     if (argsElement.get("method").toString().equals("chatMsg") && params.has("name")) {
                         messageRecognized = true;
                         long chatMessageTimestamp = Long.valueOf(params.get("time").toString()) * 1000L;
@@ -167,20 +171,20 @@ public class HitBoxClient extends WebSocketClient {
                 }
             }
             if (!messageRecognized) {
-                System.out.println(jsonMessage.toString(2));
+                log.info(jsonMessage.toString(2));
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("", ex);
             throw ex;
         }
     }
 
     public void onClose(int code, String reason, boolean remote) {
-        System.out.println("closed, " + reason);
+        log.info("closed, " + reason);
     }
 
     public void onError(Exception e) {
-        e.printStackTrace();
+        log.error("", e);
     }
 
     public void joinChannel(String name, String pass, String channel) {
@@ -196,9 +200,10 @@ public class HitBoxClient extends WebSocketClient {
 
     public static void main(String[] args) {
         try {
+            // read config
             XStream xstream = new XStream(new StaxDriver());
             if (CFG_FILE.exists()) {
-                config = (Config)xstream.fromXML(CFG_FILE);
+                config = (Config) xstream.fromXML(CFG_FILE);
             } else {
                 // save empty config so user is able to add his details
                 CFG_FILE.getParentFile().mkdirs();
@@ -211,9 +216,23 @@ public class HitBoxClient extends WebSocketClient {
                 throw new RuntimeException("please update your config file at " + CFG_FILE.getCanonicalPath());
             }
             rescheduleChatLogRemovalTimer();
+            
+            // start Hitbox client
             client = new HitBoxClient(config.botname, config.password, config.channel, HitBoxClient.getIP());
+            
+            // start twitch client
+            TwitchIRCClient twitchClient = new TwitchIRCClient(config.twitchBotname, config.twitchOauthToken);
+            twitchClient.connect();
+            twitchClient.joinChannel(config.twitchChannel, new TwitchChatListener() {
+                @Override
+                public void onChatMessage(String from, String message) {
+                    log.info(from + ": " + message);
+                    logChatMessage(from, message);
+                    playSound(config.chatSound);
+                }
+            });
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("", e);
         }
     }
 
@@ -241,7 +260,7 @@ public class HitBoxClient extends WebSocketClient {
                 osw.append("Latest Follower: " + followerName + System.lineSeparator());
             }
         } catch (IOException ex) {
-            ex.printStackTrace();
+            log.error("", ex);
         }
         playSound(config.newFollowerSound);
     }
@@ -264,7 +283,7 @@ public class HitBoxClient extends WebSocketClient {
         chatLogRemovalTimer.schedule(timerTask, KEEP_CHATLOG_MILLIS);
     }
 
-    public void logChatMessage(String name, String text) {
+    public static void logChatMessage(String name, String text) {
         if (config.filesOutputFolder == null) {
             return;
         }
@@ -278,7 +297,7 @@ public class HitBoxClient extends WebSocketClient {
             }
             rescheduleChatLogRemovalTimer();
         } catch (IOException ex) {
-            ex.printStackTrace();
+            log.error("", ex);
         }
     }
 
@@ -309,27 +328,28 @@ public class HitBoxClient extends WebSocketClient {
             clip.open(AudioSystem.getAudioInputStream(file));
             clip.start();
         } catch (Exception exc) {
-            exc.printStackTrace(System.out);
+            log.error("", exc);
         }
     }
-    
-	public static String formatXml(String xml) {
 
-		try{
-			Transformer serializer = SAXTransformerFactory.newInstance().newTransformer();
+    public static String formatXml(String xml) {
 
-			serializer.setOutputProperty(OutputKeys.INDENT, "yes");
-			serializer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+        try {
+            Transformer serializer = SAXTransformerFactory.newInstance().newTransformer();
 
-			Source xmlSource = new SAXSource(new InputSource(new ByteArrayInputStream(xml.getBytes())));
-			StreamResult res =  new StreamResult(new ByteArrayOutputStream());
+            serializer.setOutputProperty(OutputKeys.INDENT, "yes");
+            serializer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
 
-			serializer.transform(xmlSource, res);
+            Source xmlSource = new SAXSource(new InputSource(new ByteArrayInputStream(xml.getBytes())));
+            StreamResult res = new StreamResult(new ByteArrayOutputStream());
 
-			return new String(((ByteArrayOutputStream)res.getOutputStream()).toByteArray());
+            serializer.transform(xmlSource, res);
 
-		}catch(Exception e){
-			return xml;
-		}
-	}
+            return new String(((ByteArrayOutputStream) res.getOutputStream()).toByteArray());
+
+        } catch (Exception e) {
+            log.error("", e);
+            return xml;
+        }
+    }
 }
