@@ -1,4 +1,4 @@
-package com.mycompany.twitch.client;
+package com.github.jjYBdx4IL.streaming.clients.twitch;
 
 /**
  *

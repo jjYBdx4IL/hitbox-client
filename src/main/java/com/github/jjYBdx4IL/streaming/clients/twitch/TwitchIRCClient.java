@@ -1,10 +1,6 @@
-package com.mycompany.twitch.client;
+package com.github.jjYBdx4IL.streaming.clients.twitch;
 
-import com.mycompany.hitbox.client.Config;
-import static com.mycompany.hitbox.client.HitBoxClient.CFG_FILE;
-import static com.mycompany.hitbox.client.HitBoxClient.config;
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.io.xml.StaxDriver;
+import com.github.jjYBdx4IL.streaming.clients.TwitchChatListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,11 +8,8 @@ import java.io.InputStreamReader;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.io.IOUtils;
@@ -44,7 +37,16 @@ public class TwitchIRCClient implements Runnable {
     private final Set<String> joinedChannels; // for reconnect
     private Thread reader;
     private final AtomicLong lastActivityDetected = new AtomicLong(-1L);
-    private Timer inactivityTimer = null;
+
+    public boolean isConnected() {
+        if (!reader.isAlive()) {
+            return false;
+        }
+        if (System.currentTimeMillis() - lastActivityDetected.get() > MAX_INACTIVITY_TIME) {
+            return false;
+        }
+        return true;
+    }
 
     public TwitchIRCClient(String botname, String password) {
         this.statusListeners = Collections.synchronizedSet(new HashSet<>());
@@ -138,39 +140,9 @@ public class TwitchIRCClient implements Runnable {
 
     public void connect() throws IOException, InterruptedException {
 
-        boolean connected = false;
-        long connectDelaySeconds = 0L;
-        long connectDelayIncSeconds = 5L;
-
-        do {
-            try {
-                tc.connect("irc.twitch.tv", 6667);
-                connected = true;
-            } catch (IOException e) {
-                connectDelaySeconds += connectDelayIncSeconds;
-                log.error("failed to connect to twitch irc, retrying in " + connectDelaySeconds + " seconds", e);
-                Thread.sleep(connectDelaySeconds * 1000L);
-            }
-        } while (!connected);
+        tc.connect("irc.twitch.tv", 6667);
         reader = new Thread(this, "Twitch IRC Reader");
         reader.start();
-
-        if (inactivityTimer != null) {
-            inactivityTimer.cancel();
-        }
-        inactivityTimer = new Timer("twitch irc chat connection inactivity check timer", true);
-        inactivityTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                if (!reader.isAlive()) {
-                    reconnect();
-                    return;
-                }
-                if (System.currentTimeMillis() - lastActivityDetected.get() > MAX_INACTIVITY_TIME) {
-                    reconnect();
-                }
-            }
-        }, CONNECTION_CHECK_IVAL, CONNECTION_CHECK_IVAL);
 
         // auth
         sendNoLog("PASS " + password);
@@ -178,8 +150,7 @@ public class TwitchIRCClient implements Runnable {
         log.info("login to twitch irc successful");
     }
 
-    public void reconnect() {
-        log.info("reconnecting");
+    public void shutdown() {
         if (reader.isAlive()) {
             reader.interrupt();
             try {
@@ -194,21 +165,6 @@ public class TwitchIRCClient implements Runnable {
             }
         } catch (IOException ex) {
             log.error("", ex);
-        }
-
-        try {
-            connect();
-        } catch (IOException | InterruptedException ex) {
-            log.error("", ex);
-        }
-        
-        
-        for (String channel : joinedChannels) {
-            try {
-                joinChannel(channel, null);
-            } catch (IOException ex) {
-                log.error("", ex);
-            }
         }
     }
 
@@ -229,7 +185,7 @@ public class TwitchIRCClient implements Runnable {
                 }
             });
         }
-        
+
         joinedChannels.add(channel);
 
     }
@@ -282,24 +238,6 @@ public class TwitchIRCClient implements Runnable {
         }
         removeListener(listener);
         log.info("success: " + cmd);
-    }
-
-    public static void main(String[] args) throws InterruptedException {
-        try {
-            XStream xstream = new XStream(new StaxDriver());
-            config = (Config) xstream.fromXML(CFG_FILE);
-            TwitchIRCClient client = new TwitchIRCClient(config.twitchBotname, config.twitchOauthToken);
-            client.connect();
-            client.joinChannel(config.twitchChannel, new TwitchChatListener() {
-                @Override
-                public void onChatMessage(String from, String message) {
-                    log.info(from + ": " + message);
-                }
-            });
-            client.loop();
-        } catch (IOException ex) {
-            log.error("", ex);
-        }
     }
 
 }
