@@ -231,6 +231,7 @@ public class HitBoxClient extends WebSocketClient {
                     playSound(config.chatSound);
                 }
             });
+            Thread.sleep(1000L*3600L*1000L);
         } catch (Exception e) {
             log.error("", e);
         }
