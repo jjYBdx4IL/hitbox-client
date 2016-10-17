@@ -11,3 +11,4 @@
 ## TODO
 
 * reconnects
+* refactoring, rework proof-of-concept into sth bigger, add tray support, cfg dialog etc.

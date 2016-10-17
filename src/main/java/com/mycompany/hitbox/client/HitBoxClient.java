@@ -1,6 +1,11 @@
 package com.mycompany.hitbox.client;
 
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.xml.StaxDriver;
+
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -14,21 +19,30 @@ import java.io.OutputStreamWriter;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.sound.sampled.Line;
 import javax.sound.sampled.LineEvent;
 import javax.sound.sampled.LineListener;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.sax.SAXSource;
+import javax.xml.transform.sax.SAXTransformerFactory;
+import javax.xml.transform.stream.StreamResult;
+
+import org.apache.commons.io.IOUtils;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_10;
 import org.java_websocket.handshake.ServerHandshake;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.xml.sax.InputSource;
 
 /**
  * Based on https://www.reddit.com/r/hitbox/comments/2y27nm/tutorial_connecting_to_the_hitbox_chat_with/
@@ -38,7 +52,7 @@ import org.json.JSONObject;
 public class HitBoxClient extends WebSocketClient {
 
     public static final File CFG_FILE = new File(new File(System.getProperty("user.home"), ".hitbox-java-client"), "config.xml");
-    public static final Properties p = new Properties();
+    public static Config config = new Config();
     public long chatSessionStartingTime = System.currentTimeMillis();
     private static Timer chatLogRemovalTimer = null;
     public static final long KEEP_CHATLOG_MILLIS = 30 * 1000L;
@@ -141,7 +155,7 @@ public class HitBoxClient extends WebSocketClient {
                         if (chatMessageTimestamp > chatSessionStartingTime) {
                             System.out.println(params.get("name").toString() + ": " + params.get("text").toString());
                             logChatMessage(params.get("name").toString(), params.get("text").toString());
-                            playSound("chatSound");
+                            playSound(config.chatSound);
                         }
                     }
                     if (argsElement.get("method").toString().equals("chatLog") && params.has("text")) {
@@ -184,28 +198,22 @@ public class HitBoxClient extends WebSocketClient {
 
     public static void main(String[] args) {
         try {
-            p.setProperty("botname", "replace me");
-            p.setProperty("password", "replace me");
-            p.setProperty("channel", "replace me");
-            p.setProperty("chatSound", "replace me");
-            p.setProperty("newFollowerSound", "replace me");
-            p.setProperty("filesOutputFolder", "replace me");
+            XStream xstream = new XStream(new StaxDriver());
             if (CFG_FILE.exists()) {
-                try (InputStream is = new FileInputStream(CFG_FILE)) {
-                    p.loadFromXML(is);
-                }
+                config = (Config)xstream.fromXML(CFG_FILE);
             } else {
                 // save empty config so user is able to add his details
                 CFG_FILE.getParentFile().mkdirs();
+                String xml = xstream.toXML(new Config());
                 try (OutputStream os = new FileOutputStream(CFG_FILE)) {
-                    p.storeToXML(os, null);
+                    IOUtils.write(formatXml(xml), os);
                 }
             }
-            if (p.getProperty("botname").equals("replace me")) {
+            if (config.botname.equalsIgnoreCase("replace me")) {
                 throw new RuntimeException("please update your config file at " + CFG_FILE.getCanonicalPath());
             }
             rescheduleChatLogRemovalTimer();
-            client = new HitBoxClient(p.getProperty("botname"), p.getProperty("password"), p.getProperty("channel"), HitBoxClient.getIP());
+            client = new HitBoxClient(config.botname, config.password, config.channel, HitBoxClient.getIP());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -223,10 +231,10 @@ public class HitBoxClient extends WebSocketClient {
         if (followerName.isEmpty()) {
             return;
         }
-        if (p.getProperty("filesOutputFolder") == null) {
+        if (config.filesOutputFolder == null) {
             return;
         }
-        File latestFollowerFile = new File(p.getProperty("filesOutputFolder"), "latestFollower.txt");
+        File latestFollowerFile = new File(config.filesOutputFolder, "latestFollower.txt");
         if (!latestFollowerFile.getParentFile().exists()) {
             latestFollowerFile.getParentFile().mkdirs();
         }
@@ -237,14 +245,14 @@ public class HitBoxClient extends WebSocketClient {
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-        playSound("newFollowerSound");
+        playSound(config.newFollowerSound);
     }
 
     public static void rescheduleChatLogRemovalTimer() {
-        if (p.getProperty("filesOutputFolder") == null) {
+        if (config.filesOutputFolder == null) {
             return;
         }
-        File chatLogFile = new File(p.getProperty("filesOutputFolder"), "chat.log");
+        File chatLogFile = new File(config.filesOutputFolder, "chat.log");
         if (chatLogRemovalTimer != null) {
             chatLogRemovalTimer.cancel();
         }
@@ -259,10 +267,10 @@ public class HitBoxClient extends WebSocketClient {
     }
 
     public void logChatMessage(String name, String text) {
-        if (p.getProperty("filesOutputFolder") == null) {
+        if (config.filesOutputFolder == null) {
             return;
         }
-        File chatLogFile = new File(p.getProperty("filesOutputFolder"), "chat.log");
+        File chatLogFile = new File(config.filesOutputFolder, "chat.log");
         if (!chatLogFile.getParentFile().exists()) {
             chatLogFile.getParentFile().mkdirs();
         }
@@ -276,8 +284,7 @@ public class HitBoxClient extends WebSocketClient {
         }
     }
 
-    public static void playSound(String configName) {
-        String fileName = p.getProperty(configName);
+    public static void playSound(String fileName) {
         if (fileName == null) {
             return;
         }
@@ -307,4 +314,24 @@ public class HitBoxClient extends WebSocketClient {
             exc.printStackTrace(System.out);
         }
     }
+    
+	public static String formatXml(String xml) {
+
+		try{
+			Transformer serializer = SAXTransformerFactory.newInstance().newTransformer();
+
+			serializer.setOutputProperty(OutputKeys.INDENT, "yes");
+			serializer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+
+			Source xmlSource = new SAXSource(new InputSource(new ByteArrayInputStream(xml.getBytes())));
+			StreamResult res =  new StreamResult(new ByteArrayOutputStream());
+
+			serializer.transform(xmlSource, res);
+
+			return new String(((ByteArrayOutputStream)res.getOutputStream()).toByteArray());
+
+		}catch(Exception e){
+			return xml;
+		}
+	}
 }
