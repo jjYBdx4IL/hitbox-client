@@ -1,4 +1,4 @@
-# hitbox-client
+# streaming-clients
 
 ## Intended Use Case
 

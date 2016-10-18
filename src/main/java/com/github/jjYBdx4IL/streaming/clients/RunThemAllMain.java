@@ -6,11 +6,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.Timer;
+
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.sound.sampled.Line;
 import javax.sound.sampled.LineEvent;
 import javax.sound.sampled.LineListener;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,11 +136,13 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
 
     @Override
     public void onChatMessage(String name, String message) {
+        log.info("chat: " + name + ": " + message);
         logChatMessage(name, message);
     }
 
     @Override
     public void onFollow(String name) {
+        log.info("follow: " + name);
         logLatestFollower(name);
     }
 
