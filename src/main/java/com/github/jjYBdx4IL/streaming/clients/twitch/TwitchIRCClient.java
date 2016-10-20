@@ -25,11 +25,13 @@ public class TwitchIRCClient implements Runnable {
     public static final String LF = "\r\n";
     private static final Logger log = LoggerFactory.getLogger(TwitchIRCClient.class);
     public static final long MAX_WAIT_MILLIS = 30 * 1000L;
+    public static final int CONNECT_WAIT_MILLIS = 10 * 1000;
     public static final Pattern STATUSLINE_PATTERN = Pattern.compile("^:(\\S+)\\s+(\\d+)\\s+(\\S+)\\s+(\\S.*)$");
     public static final Pattern COMMANDLINE_PATTERN = Pattern.compile("^(?!:)(\\S+)(?:|\\s+(\\S.*))$");
     public static final Pattern CHANNELMSG_PATTERN = Pattern.compile("^:([^! ]+)!\\S+\\.tmi\\.twitch\\.tv\\s+PRIVMSG\\s+(#\\S+)\\s+:(.+)$");
     public static final long MAX_INACTIVITY_TIME = 6 * 60 * 1000L; // twitch sends out a ping every 5 mins
-    public static final long CONNECTION_CHECK_IVAL = 60 * 1000L;
+    public static final String TWITCH_IRC_SERVER_NAME = "irc.twitch.tv";
+    public static final int TWITCH_IRC_SERVER_PORT = 6667;
 
     private final Socket socket = new Socket();
     private final String botname;
@@ -139,7 +141,7 @@ public class TwitchIRCClient implements Runnable {
             }
         });
         
-        socket.connect(new InetSocketAddress("irc.twitch.tv", 6667), 10000);
+        socket.connect(new InetSocketAddress(TWITCH_IRC_SERVER_NAME, TWITCH_IRC_SERVER_PORT), CONNECT_WAIT_MILLIS);
         reader = new Thread(this, "Twitch IRC Reader");
         reader.start();
 
