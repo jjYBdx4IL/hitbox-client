@@ -12,6 +12,8 @@ import javax.sound.sampled.Clip;
 import javax.sound.sampled.Line;
 import javax.sound.sampled.LineEvent;
 import javax.sound.sampled.LineListener;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,85 +24,11 @@ import org.slf4j.LoggerFactory;
  */
 public class RunThemAllMain implements ChatListener, FollowerListener {
 
-    private static final Logger log = LoggerFactory.getLogger(RunThemAllMain.class);
-    private static Timer chatLogRemovalTimer = new Timer(true);
-    private GenericConfig config = null;
+    private static final Logger LOG = LoggerFactory.getLogger(RunThemAllMain.class);
+    private static final Timer CHATLOG_REMOVAL_TIMER = new Timer(true);
 
     public static void main(String[] args) {
         new RunThemAllMain().run();
-    }
-
-    public void run() {
-        try {
-            config = (GenericConfig) GenericConfig.readConfig("generic.xml", GenericConfig.class);
-            config.postprocess();
-            
-            TwitchClientConnectionManager twitchCCM = new TwitchClientConnectionManager();
-            twitchCCM.addChatListener(this);
-            twitchCCM.addFollowerListener(this);
-            twitchCCM.start();
-            
-            HitBoxClientConnectionManager hitBoxCCM = new HitBoxClientConnectionManager();
-            hitBoxCCM.addChatListener(this);
-            hitBoxCCM.addFollowerListener(this);
-            hitBoxCCM.start();
-            
-            if (getChatLogFile() != null) {
-                new ChatLogRemovalTask(chatLogRemovalTimer, getChatLogFile()).run();
-            }
-            
-            log.info("main thread going to sleep");
-            synchronized(this) { wait(); }
-        } catch (Exception ex) {
-            log.error("", ex);
-            throw new RuntimeException(ex);
-        }
-    }
-
-    public void logLatestFollower(String followerName) {
-        if (followerName.isEmpty()) {
-            return;
-        }
-        if (config.filesOutputFolder == null) {
-            return;
-        }
-        File latestFollowerFile = new File(config.filesOutputFolder, "latestFollower.txt");
-        if (!latestFollowerFile.getParentFile().exists()) {
-            latestFollowerFile.getParentFile().mkdirs();
-        }
-        try (OutputStream os = new FileOutputStream(latestFollowerFile, false)) {
-            try (OutputStreamWriter osw = new OutputStreamWriter(os, "UTF-8")) {
-                osw.append("Latest Follower: " + followerName + System.lineSeparator());
-            }
-        } catch (IOException ex) {
-            log.error("", ex);
-        }
-        playSound(config.newFollowerSound);
-    }
-
-    private File getChatLogFile() {
-        if (config.filesOutputFolder == null) {
-            return null;
-        }
-        return new File(config.filesOutputFolder, "chat.log");
-    }
-    
-    public void logChatMessage(String name, String text) {
-        File chatLogFile = getChatLogFile();
-        if (chatLogFile == null) {
-            return;
-        }
-        if (!chatLogFile.getParentFile().exists()) {
-            chatLogFile.getParentFile().mkdirs();
-        }
-        try (OutputStream os = new FileOutputStream(chatLogFile, true)) {
-            try (OutputStreamWriter osw = new OutputStreamWriter(os, "UTF-8")) {
-                osw.append(name + ": " + text + System.lineSeparator());
-            }
-        } catch (IOException ex) {
-            log.error("", ex);
-        }
-        playSound(config.chatSound);
     }
 
     public static void playSound(String fileName) {
@@ -129,20 +57,95 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
 
             clip.open(AudioSystem.getAudioInputStream(file));
             clip.start();
-        } catch (Exception exc) {
-            log.error("", exc);
+        } catch (IOException | LineUnavailableException | UnsupportedAudioFileException exc) {
+            LOG.error("", exc);
         }
+    }
+
+    private GenericConfig config = null;
+
+    public void run() {
+        try {
+            config = (GenericConfig) GenericConfig.readConfig("generic.xml", GenericConfig.class);
+            config.postprocess();
+            
+            TwitchClientConnectionManager twitchCCM = new TwitchClientConnectionManager();
+            twitchCCM.addChatListener(this);
+            twitchCCM.addFollowerListener(this);
+            twitchCCM.start();
+            
+            HitBoxClientConnectionManager hitBoxCCM = new HitBoxClientConnectionManager();
+            hitBoxCCM.addChatListener(this);
+            hitBoxCCM.addFollowerListener(this);
+            hitBoxCCM.start();
+            
+            if (getChatLogFile() != null) {
+                new ChatLogRemovalTask(CHATLOG_REMOVAL_TIMER, getChatLogFile()).run();
+            }
+            
+            LOG.info("main thread going to sleep");
+            synchronized(this) { wait(); }
+        } catch (IOException | IllegalAccessException | InstantiationException | InterruptedException ex) {
+            LOG.error("", ex);
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public void logLatestFollower(String followerName) {
+        if (followerName.isEmpty()) {
+            return;
+        }
+        if (config.filesOutputFolder == null) {
+            return;
+        }
+        File latestFollowerFile = new File(config.filesOutputFolder, "latestFollower.txt");
+        if (!latestFollowerFile.getParentFile().exists()) {
+            latestFollowerFile.getParentFile().mkdirs();
+        }
+        try (OutputStream os = new FileOutputStream(latestFollowerFile, false)) {
+            try (OutputStreamWriter osw = new OutputStreamWriter(os, "UTF-8")) {
+                osw.append("Latest Follower: " + followerName + System.lineSeparator());
+            }
+        } catch (IOException ex) {
+            LOG.error("", ex);
+        }
+        playSound(config.newFollowerSound);
+    }
+
+    private File getChatLogFile() {
+        if (config.filesOutputFolder == null) {
+            return null;
+        }
+        return new File(config.filesOutputFolder, "chat.log");
+    }
+    
+    public void logChatMessage(String name, String text) {
+        File chatLogFile = getChatLogFile();
+        if (chatLogFile == null) {
+            return;
+        }
+        if (!chatLogFile.getParentFile().exists()) {
+            chatLogFile.getParentFile().mkdirs();
+        }
+        try (OutputStream os = new FileOutputStream(chatLogFile, true)) {
+            try (OutputStreamWriter osw = new OutputStreamWriter(os, "UTF-8")) {
+                osw.append(name + ": " + text + System.lineSeparator());
+            }
+        } catch (IOException ex) {
+            LOG.error("", ex);
+        }
+        playSound(config.chatSound);
     }
 
     @Override
     public void onChatMessage(String name, String message) {
-        log.info("chat: " + name + ": " + message);
+        LOG.info("chat: " + name + ": " + message);
         logChatMessage(name, message);
     }
 
     @Override
     public void onFollow(String name) {
-        log.info("follow: " + name);
+        LOG.info("follow: " + name);
         logLatestFollower(name);
     }
 

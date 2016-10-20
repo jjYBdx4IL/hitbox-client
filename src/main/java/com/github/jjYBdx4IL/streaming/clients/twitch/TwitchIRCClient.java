@@ -1,10 +1,13 @@
 package com.github.jjYBdx4IL.streaming.clients.twitch;
 
 import com.github.jjYBdx4IL.streaming.clients.TwitchChatListener;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -12,8 +15,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.net.telnet.TelnetClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +31,7 @@ public class TwitchIRCClient implements Runnable {
     public static final long MAX_INACTIVITY_TIME = 6 * 60 * 1000L; // twitch sends out a ping every 5 mins
     public static final long CONNECTION_CHECK_IVAL = 60 * 1000L;
 
-    private final TelnetClient tc = new TelnetClient();
+    private final Socket socket = new Socket();
     private final String botname;
     private final String password;
     private final Set<IRCStatusListener> statusListeners;
@@ -38,16 +41,6 @@ public class TwitchIRCClient implements Runnable {
     private Thread reader;
     private final AtomicLong lastActivityDetected = new AtomicLong(-1L);
 
-    public boolean isConnected() {
-        if (!reader.isAlive()) {
-            return false;
-        }
-        if (System.currentTimeMillis() - lastActivityDetected.get() > MAX_INACTIVITY_TIME) {
-            return false;
-        }
-        return true;
-    }
-
     public TwitchIRCClient(String botname, String password) {
         this.statusListeners = Collections.synchronizedSet(new HashSet<>());
         this.commandListeners = Collections.synchronizedSet(new HashSet<>());
@@ -55,29 +48,23 @@ public class TwitchIRCClient implements Runnable {
         this.joinedChannels = Collections.synchronizedSet(new HashSet<>());
         this.botname = botname;
         this.password = password;
-
-        // PING handler
-        addListener(new IRCCommandListener() {
-            @Override
-            public void onCommandReceived(String command, String args) {
-                try {
-                    send("PONG " + args);
-                } catch (IOException ex) {
-                    log.error("", ex);
-                }
-            }
-        });
+    }
+    
+    public boolean isConnected() {
+        if (!reader.isAlive()) {
+            return false;
+        }
+        return System.currentTimeMillis() - lastActivityDetected.get() <= MAX_INACTIVITY_TIME;
     }
 
     @Override
     public void run() {
 
         try {
-            InputStream instr = tc.getInputStream();
-
-            String line;
+            InputStream instr = socket.getInputStream();
             BufferedReader br = new BufferedReader(new InputStreamReader(instr));
-            while ((line = br.readLine()) != null) {
+            
+            for (String line = br.readLine(); line != null; line = br.readLine()) {
                 log.info("< " + line);
                 lastActivityDetected.set(System.currentTimeMillis());
 
@@ -108,7 +95,7 @@ public class TwitchIRCClient implements Runnable {
         }
 
         try {
-            tc.disconnect();
+            socket.close();
         } catch (IOException e) {
             log.error("Exception while closing telnet:", e);
         }
@@ -140,7 +127,19 @@ public class TwitchIRCClient implements Runnable {
 
     public void connect() throws IOException, InterruptedException {
 
-        tc.connect("irc.twitch.tv", 6667);
+        // PING handler
+        addListener(new IRCCommandListener() {
+            @Override
+            public void onCommandReceived(String command, String args) {
+                try {
+                    send("PONG " + args);
+                } catch (IOException ex) {
+                    log.error("", ex);
+                }
+            }
+        });
+        
+        socket.connect(new InetSocketAddress("irc.twitch.tv", 6667), 10000);
         reader = new Thread(this, "Twitch IRC Reader");
         reader.start();
 
@@ -160,8 +159,8 @@ public class TwitchIRCClient implements Runnable {
             }
         }
         try {
-            if (tc.isConnected()) {
-                tc.disconnect();
+            if (socket.isConnected()) {
+                socket.close();
             }
         } catch (IOException ex) {
             log.error("", ex);
@@ -200,14 +199,14 @@ public class TwitchIRCClient implements Runnable {
     }
 
     public void sendNoLog(String cmd) throws IOException {
-        IOUtils.write(cmd + LF, tc.getOutputStream());
-        tc.getOutputStream().flush();
+        IOUtils.write(cmd + LF, socket.getOutputStream());
+        socket.getOutputStream().flush();
     }
 
     public void send(String cmd) throws IOException {
         log.info("> " + cmd);
-        IOUtils.write(cmd + LF, tc.getOutputStream());
-        tc.getOutputStream().flush();
+        IOUtils.write(cmd + LF, socket.getOutputStream());
+        socket.getOutputStream().flush();
     }
 
     public void sendAndWait(String cmd, int retCode) throws IOException {
