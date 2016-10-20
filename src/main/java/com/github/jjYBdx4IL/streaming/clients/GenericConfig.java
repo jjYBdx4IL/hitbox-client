@@ -21,7 +21,7 @@ import org.xml.sax.InputSource;
 
 /**
  *
- * @author mark
+ * @author jjYBdx4IL
  */
 public class GenericConfig {
 

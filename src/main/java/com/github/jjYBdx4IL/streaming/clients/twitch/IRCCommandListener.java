@@ -2,7 +2,7 @@ package com.github.jjYBdx4IL.streaming.clients.twitch;
 
 /**
  *
- * @author mark
+ * @author jjYBdx4IL
  */
 public interface IRCCommandListener {
     

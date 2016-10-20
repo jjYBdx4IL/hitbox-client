@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  *
- * @author mark
+ * @author jjYBdx4IL
  */
 public abstract class ConnectionManager extends TimerTask implements ChatListenerHandler, FollowerListenerHandler {
 

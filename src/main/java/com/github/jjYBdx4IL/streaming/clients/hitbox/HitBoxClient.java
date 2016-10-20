@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Based on
  * https://www.reddit.com/r/hitbox/comments/2y27nm/tutorial_connecting_to_the_hitbox_chat_with/
  *
- * @author mark
+ * @author jjYBdx4IL
  */
 public class HitBoxClient extends WebSocketClient implements ChatListenerHandler, FollowerListenerHandler {
 

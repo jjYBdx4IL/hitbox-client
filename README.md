@@ -22,4 +22,6 @@ There are the specific Twitch, HitBox etc. client implementations. Those get han
 specific CCMs (client connection managers), each of which runs in its own TimerTask at regular
 intervals and checks the connection state. If something is wrong with the connection, we drop the entire
 Twitch, HitBox etc. client and set up a new one, each time making sure we re-setup the chat/follower listener
-structure.
+structure.--
+[![Build Status](https://travis-ci.org/jjYBdx4IL/streaming-clients.png?branch=master)](https://travis-ci.org/jjYBdx4IL/streaming-clients)
+devel/java/github/streaming-clients@7070

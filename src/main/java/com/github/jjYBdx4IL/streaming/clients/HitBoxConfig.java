@@ -2,7 +2,7 @@ package com.github.jjYBdx4IL.streaming.clients;
 
 /**
  *
- * @author mark
+ * @author jjYBdx4IL
  */
 public class HitBoxConfig {
 

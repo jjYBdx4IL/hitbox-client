@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  *
- * @author mark
+ * @author jjYBdx4IL
  */
 public class HitBoxClientConnectionManager extends ConnectionManager {
 
