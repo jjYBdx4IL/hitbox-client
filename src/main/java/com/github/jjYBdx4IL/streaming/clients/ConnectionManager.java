@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,17 +15,17 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class ConnectionManager extends TimerTask implements ChatListenerHandler, FollowerListenerHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(ConnectionManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ConnectionManager.class);
 
     private final Set<ChatListener> chatListeners;
     private final Set<FollowerListener> followerListeners;
+
+    private final Timer timer = new Timer(true);
     
     public ConnectionManager() {
         this.chatListeners = Collections.synchronizedSet(new HashSet<>());
         this.followerListeners = Collections.synchronizedSet(new HashSet<>());
     }
-
-    private Timer timer = new Timer(true);
 
     public abstract void reconnect();
 
@@ -35,19 +36,19 @@ public abstract class ConnectionManager extends TimerTask implements ChatListene
     }
 
     public void run() {
-        log.debug("checking connection state");
+        LOG.debug("checking connection state");
         if (!isConnected()) {
-            log.info("(re)connecting");
+            LOG.info("(re)connecting");
             reconnect();
         }
     }
 
     protected Set<ChatListener> getChatListeners() {
-        return chatListeners;
+        return Collections.unmodifiableSet(chatListeners);
     }
     
     protected Set<FollowerListener> getFollowerListeners() {
-        return followerListeners;
+        return Collections.unmodifiableSet(followerListeners);
     }
     
     @Override

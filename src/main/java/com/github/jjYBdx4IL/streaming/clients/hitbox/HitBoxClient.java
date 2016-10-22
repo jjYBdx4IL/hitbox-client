@@ -3,17 +3,21 @@ package com.github.jjYBdx4IL.streaming.clients.hitbox;
 import com.github.jjYBdx4IL.streaming.clients.ChatListener;
 import com.github.jjYBdx4IL.streaming.clients.ChatListenerHandler;
 import com.github.jjYBdx4IL.streaming.clients.FollowerListener;
+import com.github.jjYBdx4IL.streaming.clients.FollowerListenerHandler;
+
 import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.channels.NotYetConnectedException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,11 +25,10 @@ import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_10;
 import org.java_websocket.handshake.ServerHandshake;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.github.jjYBdx4IL.streaming.clients.FollowerListenerHandler;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Based on
@@ -35,22 +38,16 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class HitBoxClient extends WebSocketClient implements ChatListenerHandler, FollowerListenerHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(HitBoxClient.class);
-    public long chatSessionStartingTime = System.currentTimeMillis();
-    private final Set<ChatListener> chatListeners;
-    private final Set<FollowerListener> followerListeners;
-    private final Pattern FOLLOW_PATTERN = Pattern.compile("<user>(.*)</user> followed");
-    private final Pattern UNFOLLOW_PATTERN = Pattern.compile("<user>(.*)</user> unfollowed");
-    private final AtomicLong lastServerActivityTimestamp = new AtomicLong(System.currentTimeMillis());
+    private static final Logger LOG = LoggerFactory.getLogger(HitBoxClient.class);
     // consider the connection dead when the server does not send anything for 6 mins
     public static final long SERVER_TIMEOUT_MILLIS = 6 * 60 * 1000L;
-
+    private static String token;
     public static String readUrl(String urlString) {
-        BufferedReader reader = null;
+        BufferedReader reader;
         try {
             URL url = new URL(urlString);
             reader = new BufferedReader(new InputStreamReader(url.openStream()));
-            StringBuffer buffer = new StringBuffer();
+            StringBuilder buffer = new StringBuilder();
             int read;
             char[] chars = new char[1024];
             while ((read = reader.read(chars)) != -1) {
@@ -58,20 +55,17 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
             }
             reader.close();
             return buffer.toString();
-        } catch (Exception e) {
-            log.error("", e);
+        } catch (IOException e) {
+            LOG.error("", e);
         }
         return null;
     }
-
     private static String getID(String IP) {
         String connectionID = readUrl("http://" + IP + "/socket.io/1/");
-        String ID = connectionID.substring(0, connectionID.indexOf(":"));
+        String ID = connectionID.substring(0, connectionID.indexOf(':'));
         //log.info("connection ID: " + ID);
         return ID;
     }
-    private static String token;
-
     private static String getToken(String name, String pass) {
         try {
             URL url = new URL("http://api.hitbox.tv/auth/token");
@@ -84,22 +78,28 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
                 os.writeBytes(content);
                 os.flush();
             }
-            try (DataInputStream is = new DataInputStream(connection.getInputStream())) {
-                token = new JSONObject(is.readLine()).get("authToken").toString();
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
+                token = new JSONObject(br.readLine()).get("authToken").toString();
             }
-        } catch (Exception e) {
-            log.error("", e);
+        } catch (IOException | JSONException e) {
+            LOG.error("", e);
         }
         //log.info("token: " + token);
         return token;
     }
-    private final String name;
+    private long chatSessionStartingTime = System.currentTimeMillis();
+    private final Set<ChatListener> chatListeners;
+    private final Set<FollowerListener> followerListeners;
+    private final Pattern FOLLOW_PATTERN = Pattern.compile("<user>(.*)</user> followed");
+    private final Pattern UNFOLLOW_PATTERN = Pattern.compile("<user>(.*)</user> unfollowed");
+    private final AtomicLong lastServerActivityTimestamp = new AtomicLong(System.currentTimeMillis());
+    private final String username;
     private final String pass;
 
     public HitBoxClient(String name, String pass, String IP) throws URISyntaxException {
         super(new URI("ws://" + IP + "/socket.io/1/websocket/" + getID(IP)), new Draft_10());
         //log.info("websocket connection URI: " + getURI());
-        this.name = name;
+        this.username = name;
         this.pass = pass;
         this.chatListeners = Collections.synchronizedSet(new HashSet<>());
         this.followerListeners = Collections.synchronizedSet(new HashSet<>());
@@ -109,10 +109,12 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
         close();
     }
     
+    @Override
     public void onOpen(ServerHandshake handshakedata) {
 
     }
 
+    @Override
     public void onMessage(String message) {
         lastServerActivityTimestamp.set(System.currentTimeMillis());
         
@@ -124,26 +126,26 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
 
             boolean messageRecognized = false;
 
-            log.trace(message);
-            if (message.indexOf("{") == -1) {
+            LOG.trace(message);
+            if (!message.contains("{")) {
                 return;
             }
-            JSONObject jsonMessage = new JSONObject(message.substring(message.indexOf("{")));
-            log.trace(jsonMessage.toString(2));
+            JSONObject jsonMessage = new JSONObject(message.substring(message.indexOf('{')));
+            LOG.trace(jsonMessage.toString(2));
             String name = jsonMessage.get("name").toString();
-            log.trace(name);
+            LOG.trace(name);
             if (name.equals("message")) {
                 JSONArray args = new JSONArray(jsonMessage.get("args").toString());
-                log.trace("" + args.length());
+                LOG.trace("" + args.length());
                 for (int i = 0; i < args.length(); i++) {
                     JSONObject argsElement = new JSONObject(args.getString(i));
                     JSONObject params = argsElement.getJSONObject("params");
-                    log.trace(argsElement.toString(2));
+                    LOG.trace(argsElement.toString(2));
                     if (argsElement.get("method").toString().equals("chatMsg") && params.has("name")) {
                         messageRecognized = true;
                         long chatMessageTimestamp = Long.valueOf(params.get("time").toString()) * 1000L;
                         if (chatMessageTimestamp > chatSessionStartingTime) {
-                            log.trace(params.get("name").toString() + ": " + params.get("text").toString());
+                            LOG.trace(params.get("name").toString() + ": " + params.get("text").toString());
                             for (ChatListener listener : chatListeners) {
                                 listener.onChatMessage(params.get("name").toString(), params.get("text").toString());
                             }
@@ -153,32 +155,34 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
                         messageRecognized = true;
                         long chatMessageTimestamp = Long.valueOf(params.get("timestamp").toString()) * 1000L;
                         if (chatMessageTimestamp > chatSessionStartingTime) {
-                            log.trace(params.get("text").toString());
+                            LOG.trace(params.get("text").toString());
                             handleFollower(params.get("text").toString());
                         }
                     }
                 }
             }
             if (!messageRecognized) {
-                log.info(jsonMessage.toString(2));
+                LOG.info("unhandled message: " + jsonMessage.toString(2));
             }
-        } catch (Exception ex) {
-            log.error("", ex);
+        } catch (NumberFormatException | NotYetConnectedException | JSONException ex) {
+            LOG.error("", ex);
             throw ex;
         }
     }
 
+    @Override
     public void onClose(int code, String reason, boolean remote) {
-        log.info("closed, " + reason);
+        LOG.info("closed, " + reason);
     }
 
+    @Override
     public void onError(Exception e) {
-        log.error("", e);
+        LOG.error("", e);
     }
 
     public void joinChannel(String name, String pass, String channel) {
         this.send("5:::{\"name\":\"message\",\"args\":[{\"method\":\"joinChannel\",\"params\":{\"channel\":\"" + channel.toLowerCase() + "\",\"name\":\"" + name + "\",\"token\":\"" + getToken(name, pass) + "\",\"isAdmin\":false}}]}");
-        log.info("Channel " + channel + " joined.");
+        LOG.info("Channel " + channel + " joined.");
         chatSessionStartingTime = System.currentTimeMillis();
     }
 
@@ -187,7 +191,7 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
     }
 
     public void handleFollower(String text) {
-        log.trace(text);
+        LOG.trace(text);
         
         Matcher m = FOLLOW_PATTERN.matcher(text);
         if (m.find()) {

@@ -22,8 +22,8 @@ import org.slf4j.LoggerFactory;
 
 public class TwitchIRCClient implements Runnable {
 
+    private static final Logger LOG = LoggerFactory.getLogger(TwitchIRCClient.class);
     public static final String LF = "\r\n";
-    private static final Logger log = LoggerFactory.getLogger(TwitchIRCClient.class);
     public static final long MAX_WAIT_MILLIS = 30 * 1000L;
     public static final int CONNECT_WAIT_MILLIS = 10 * 1000;
     public static final Pattern STATUSLINE_PATTERN = Pattern.compile("^:(\\S+)\\s+(\\d+)\\s+(\\S+)\\s+(\\S.*)$");
@@ -39,7 +39,6 @@ public class TwitchIRCClient implements Runnable {
     private final Set<IRCStatusListener> statusListeners;
     private final Set<IRCCommandListener> commandListeners;
     private final Set<IRCChannelMessageListener> channelMessageListeners;
-    private final Set<String> joinedChannels; // for reconnect
     private Thread reader;
     private final AtomicLong lastActivityDetected = new AtomicLong(-1L);
 
@@ -47,7 +46,6 @@ public class TwitchIRCClient implements Runnable {
         this.statusListeners = Collections.synchronizedSet(new HashSet<>());
         this.commandListeners = Collections.synchronizedSet(new HashSet<>());
         this.channelMessageListeners = Collections.synchronizedSet(new HashSet<>());
-        this.joinedChannels = Collections.synchronizedSet(new HashSet<>());
         this.botname = botname;
         this.password = password;
     }
@@ -67,7 +65,7 @@ public class TwitchIRCClient implements Runnable {
             BufferedReader br = new BufferedReader(new InputStreamReader(instr));
             
             for (String line = br.readLine(); line != null; line = br.readLine()) {
-                log.info("< " + line);
+                LOG.info("< " + line);
                 lastActivityDetected.set(System.currentTimeMillis());
 
                 Matcher m = STATUSLINE_PATTERN.matcher(line);
@@ -93,13 +91,13 @@ public class TwitchIRCClient implements Runnable {
                 }
             }
         } catch (IOException e) {
-            log.error("Exception while reading socket:", e);
+            LOG.error("Exception while reading socket:", e);
         }
 
         try {
             socket.close();
         } catch (IOException e) {
-            log.error("Exception while closing telnet:", e);
+            LOG.error("Exception while closing telnet:", e);
         }
     }
 
@@ -136,7 +134,7 @@ public class TwitchIRCClient implements Runnable {
                 try {
                     send("PONG " + args);
                 } catch (IOException ex) {
-                    log.error("", ex);
+                    LOG.error("", ex);
                 }
             }
         });
@@ -148,7 +146,7 @@ public class TwitchIRCClient implements Runnable {
         // auth
         sendNoLog("PASS " + password);
         sendAndWait("NICK " + botname.toLowerCase(), 376);
-        log.info("login to twitch irc successful");
+        LOG.info("login to twitch irc successful");
     }
 
     public void shutdown() {
@@ -157,7 +155,7 @@ public class TwitchIRCClient implements Runnable {
             try {
                 reader.join();
             } catch (InterruptedException ex) {
-                log.error("", ex);
+                LOG.error("", ex);
             }
         }
         try {
@@ -165,7 +163,7 @@ public class TwitchIRCClient implements Runnable {
                 socket.close();
             }
         } catch (IOException ex) {
-            log.error("", ex);
+            LOG.error("", ex);
         }
     }
 
@@ -180,15 +178,12 @@ public class TwitchIRCClient implements Runnable {
                 @Override
                 public void onChannelMessageReceived(String from, String channelRcvd, String message) {
                     if (channelRcvd.equals(ircChannelName)) {
-                        log.info("msg received on channel " + ircChannelName + ": " + from + ": " + message);
+                        LOG.info("msg received on channel " + ircChannelName + ": " + from + ": " + message);
                         listener.onChatMessage(from, message);
                     }
                 }
             });
         }
-
-        joinedChannels.add(channel);
-
     }
 
     // only for testing
@@ -196,7 +191,7 @@ public class TwitchIRCClient implements Runnable {
         try {
             reader.join();
         } catch (InterruptedException ex) {
-            log.error("", ex);
+            LOG.error("", ex);
         }
     }
 
@@ -206,7 +201,7 @@ public class TwitchIRCClient implements Runnable {
     }
 
     public void send(String cmd) throws IOException {
-        log.info("> " + cmd);
+        LOG.info("> " + cmd);
         IOUtils.write(cmd + LF, socket.getOutputStream());
         socket.getOutputStream().flush();
     }
@@ -217,8 +212,8 @@ public class TwitchIRCClient implements Runnable {
             @Override
             public void onStatusLineReceived(String from, int code, String to, String args) {
                 if (code == retCode) {
-                    retCodeReceived.set(true);
                     synchronized (retCodeReceived) {
+                        retCodeReceived.set(true);
                         retCodeReceived.notifyAll();
                     }
                 }
@@ -229,16 +224,18 @@ public class TwitchIRCClient implements Runnable {
 
         synchronized (retCodeReceived) {
             try {
-                retCodeReceived.wait(MAX_WAIT_MILLIS);
+                if (!retCodeReceived.get()) {
+                    retCodeReceived.wait(MAX_WAIT_MILLIS);
+                }
             } catch (InterruptedException ex) {
-                log.error("", ex);
+                LOG.error("", ex);
             }
         }
         if (!retCodeReceived.get()) {
             throw new RuntimeException("timed out waiting for code " + retCode);
         }
         removeListener(listener);
-        log.info("success: " + cmd);
+        LOG.info("success: " + cmd);
     }
 
 }

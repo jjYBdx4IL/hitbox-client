@@ -2,6 +2,10 @@ package com.github.jjYBdx4IL.streaming.clients;
 
 import com.github.jjYBdx4IL.streaming.clients.hitbox.HitBoxClient;
 import com.github.jjYBdx4IL.streaming.clients.hitbox.HitBoxClientFactory;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,12 +15,12 @@ import org.slf4j.LoggerFactory;
  */
 public class HitBoxClientConnectionManager extends ConnectionManager {
 
-    private static final Logger log = LoggerFactory.getLogger(HitBoxClientConnectionManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HitBoxClientConnectionManager.class);
     private HitBoxClient client = null;
     
     @Override
     public void reconnect() {
-        log.info("(re)connect");
+        LOG.info("(re)connect");
         
         if (client != null) {
             client.shutdown();
@@ -34,8 +38,8 @@ public class HitBoxClientConnectionManager extends ConnectionManager {
             }
             client.connectBlocking();
             client.joinChannel(config.botname, config.password, config.channel);
-        } catch (Exception ex) {
-            log.error("", ex);
+        } catch (IOException | IllegalAccessException | InstantiationException | InterruptedException | URISyntaxException ex) {
+            LOG.error("", ex);
         }
     }
 
