@@ -51,7 +51,7 @@ public class TwitchIRCClient implements Runnable {
     }
     
     public boolean isConnected() {
-        if (!reader.isAlive()) {
+        if (reader == null || !reader.isAlive()) {
             return false;
         }
         return System.currentTimeMillis() - lastActivityDetected.get() <= MAX_INACTIVITY_TIME;
