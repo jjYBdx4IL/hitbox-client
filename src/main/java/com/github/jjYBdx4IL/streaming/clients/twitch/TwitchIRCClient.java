@@ -41,6 +41,7 @@ public class TwitchIRCClient implements Runnable {
     private final Set<IRCChannelMessageListener> channelMessageListeners;
     private Thread reader;
     private final AtomicLong lastActivityDetected = new AtomicLong(-1L);
+    private int nConnects = 0;
 
     public TwitchIRCClient(String botname, String password) {
         this.statusListeners = Collections.synchronizedSet(new HashSet<>());
@@ -50,8 +51,8 @@ public class TwitchIRCClient implements Runnable {
         this.password = password;
     }
     
-    public boolean isConnected() {
-        if (reader == null || !reader.isAlive()) {
+    public synchronized boolean isConnected() {
+        if (!reader.isAlive()) {
             return false;
         }
         return System.currentTimeMillis() - lastActivityDetected.get() <= MAX_INACTIVITY_TIME;
@@ -101,31 +102,37 @@ public class TwitchIRCClient implements Runnable {
         }
     }
 
-    public void addListener(IRCChannelMessageListener listener) {
+    public synchronized void addListener(IRCChannelMessageListener listener) {
         channelMessageListeners.add(listener);
     }
 
-    public void removeListener(IRCChannelMessageListener listener) {
+    public synchronized void removeListener(IRCChannelMessageListener listener) {
         channelMessageListeners.remove(listener);
     }
 
-    public void addListener(IRCCommandListener listener) {
+    public synchronized void addListener(IRCCommandListener listener) {
         commandListeners.add(listener);
     }
 
-    public void removeListener(IRCCommandListener listener) {
+    public synchronized void removeListener(IRCCommandListener listener) {
         commandListeners.remove(listener);
     }
 
-    public void addListener(IRCStatusListener listener) {
+    public synchronized void addListener(IRCStatusListener listener) {
         statusListeners.add(listener);
     }
 
-    public void removeListener(IRCStatusListener listener) {
+    public synchronized void removeListener(IRCStatusListener listener) {
         statusListeners.remove(listener);
     }
 
-    public void connect() throws IOException, InterruptedException {
+    public synchronized void connect() throws IOException, InterruptedException {
+
+        if (nConnects != 0) {
+            throw new IllegalStateException("please use a new instance for a new connection");
+        }
+
+        nConnects++;
 
         // PING handler
         addListener(new IRCCommandListener() {
@@ -149,8 +156,8 @@ public class TwitchIRCClient implements Runnable {
         LOG.info("login to twitch irc successful");
     }
 
-    public void shutdown() {
-        if (reader.isAlive()) {
+    public synchronized void shutdown() {
+        if (reader != null && reader.isAlive()) {
             reader.interrupt();
             try {
                 reader.join();
@@ -167,7 +174,7 @@ public class TwitchIRCClient implements Runnable {
         }
     }
 
-    public void joinChannel(String channel, TwitchChatListener listener) throws IOException {
+    public synchronized void joinChannel(String channel, TwitchChatListener listener) throws IOException {
 
         final String ircChannelName = "#" + channel.toLowerCase();
 
@@ -195,18 +202,18 @@ public class TwitchIRCClient implements Runnable {
         }
     }
 
-    public void sendNoLog(String cmd) throws IOException {
+    public synchronized void sendNoLog(String cmd) throws IOException {
         IOUtils.write(cmd + LF, socket.getOutputStream());
         socket.getOutputStream().flush();
     }
 
-    public void send(String cmd) throws IOException {
+    public synchronized void send(String cmd) throws IOException {
         LOG.info("> " + cmd);
         IOUtils.write(cmd + LF, socket.getOutputStream());
         socket.getOutputStream().flush();
     }
 
-    public void sendAndWait(String cmd, int retCode) throws IOException {
+    public synchronized void sendAndWait(String cmd, int retCode) throws IOException {
         AtomicBoolean retCodeReceived = new AtomicBoolean(false);
         IRCStatusListener listener = new IRCStatusListener() {
             @Override
