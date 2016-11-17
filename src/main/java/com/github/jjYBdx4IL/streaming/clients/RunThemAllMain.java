@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.Locale;
 import java.util.Timer;
 
 import javax.sound.sampled.AudioSystem;
@@ -139,8 +140,11 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
 
     @Override
     public void onChatMessage(String name, String message) {
-        LOG.info("chat: " + name + ": " + message);
-        logChatMessage(name, message);
+        boolean ignored = config.ignore.contains(name.toLowerCase(Locale.ROOT));
+        LOG.info("chat: " + name + ": " + message + (ignored ? " (ignored)" : ""));
+        if (!ignored) {
+            logChatMessage(name, message);
+        }
     }
 
     @Override
