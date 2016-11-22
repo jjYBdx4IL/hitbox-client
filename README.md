@@ -15,6 +15,7 @@ We are utlizing our own simple IRC client based on Apache commons-net Telnet imp
 * write chat messages to a log file and delete the log file after 30 seconds of inactivity (good for including chat in the stream; twitch+hitbox)
 * play a sound for each new follower (hitbox only atm)
 * write latest follower to a text file for OBS inclusion (hitbox only)
+* each sound file does not get played back more than once every 30 secs. if it has been played more recently than 30 secs ago, the next playback will be scheduled accordingly.
 
 ## General Implementation Structure
 

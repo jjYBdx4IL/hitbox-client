@@ -8,14 +8,6 @@ import java.io.OutputStreamWriter;
 import java.util.Locale;
 import java.util.Timer;
 
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
-import javax.sound.sampled.Line;
-import javax.sound.sampled.LineEvent;
-import javax.sound.sampled.LineListener;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.UnsupportedAudioFileException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +19,7 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(RunThemAllMain.class);
     private static final Timer CHATLOG_REMOVAL_TIMER = new Timer(true);
+    private static final SoundPlaybackManager soundManager = new SoundPlaybackManager();
 
     public static void main(String[] args) {
         new RunThemAllMain().run();
@@ -40,27 +33,7 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
         if (!soundFile.exists()) {
             return;
         }
-        play(soundFile);
-    }
-
-    public static void play(File file) {
-        try {
-            final Clip clip = (Clip) AudioSystem.getLine(new Line.Info(Clip.class));
-
-            clip.addLineListener(new LineListener() {
-                @Override
-                public void update(LineEvent event) {
-                    if (event.getType() == LineEvent.Type.STOP) {
-                        clip.close();
-                    }
-                }
-            });
-
-            clip.open(AudioSystem.getAudioInputStream(file));
-            clip.start();
-        } catch (IOException | LineUnavailableException | UnsupportedAudioFileException exc) {
-            LOG.error("", exc);
-        }
+        soundManager.schedulePlayback(soundFile);
     }
 
     private GenericConfig config = null;
@@ -92,7 +65,7 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
         }
     }
 
-    public void logLatestFollower(String followerName) {
+    public synchronized void logLatestFollower(String followerName) {
         if (followerName.isEmpty()) {
             return;
         }
@@ -120,7 +93,7 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
         return new File(config.filesOutputFolder, "chat.log");
     }
     
-    public void logChatMessage(String name, String text) {
+    public synchronized void logChatMessage(String name, String text) {
         File chatLogFile = getChatLogFile();
         if (chatLogFile == null) {
             return;
