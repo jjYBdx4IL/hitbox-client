@@ -20,6 +20,7 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
     private static final Logger LOG = LoggerFactory.getLogger(RunThemAllMain.class);
     private static final Timer CHATLOG_REMOVAL_TIMER = new Timer(true);
     private static final SoundPlaybackManager soundManager = new SoundPlaybackManager();
+    private static final int MAX_CHATLOG_LINE_LENGTH = 60;
 
     public static void main(String[] args) {
         new RunThemAllMain().run();
@@ -103,7 +104,21 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
         }
         try (OutputStream os = new FileOutputStream(chatLogFile, true)) {
             try (OutputStreamWriter osw = new OutputStreamWriter(os, "UTF-8")) {
-                osw.append(name + ": " + text + System.lineSeparator());
+                boolean first = true;
+                String msg = text.trim();
+                while (!msg.isEmpty()) {
+                    String msg2 = new String(msg);
+                    if (msg2.length() > MAX_CHATLOG_LINE_LENGTH) {
+                        msg2 = msg2.substring(0, MAX_CHATLOG_LINE_LENGTH);
+                    }
+                    msg = msg.substring(msg2.length());
+                    if (first) {
+                        osw.append(name + ": " + msg2 + System.lineSeparator());
+                        first = false;
+                    } else {
+                        osw.append("   " + msg2 + System.lineSeparator());
+                    }
+                }
             }
         } catch (IOException ex) {
             LOG.error("", ex);
