@@ -25,6 +25,7 @@ intervals and checks the connection state. If something is wrong with the connec
 Twitch, HitBox etc. client and set up a new one, each time making sure we re-setup the chat/follower listener
 structure.
 
+
 --
 [![Build Status](https://travis-ci.org/jjYBdx4IL/streaming-clients.png?branch=master)](https://travis-ci.org/jjYBdx4IL/streaming-clients)
-devel/java/github/streaming-clients@7113
+devel/java/github/streaming-clients@7114
