@@ -18,15 +18,16 @@ import org.slf4j.LoggerFactory;
 public class RunThemAllMain implements ChatListener, FollowerListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(RunThemAllMain.class);
-    private static final Timer CHATLOG_REMOVAL_TIMER = new Timer(true);
-    private static final SoundPlaybackManager soundManager = new SoundPlaybackManager();
+    private static final Timer CHATLOG_REMOVAL_TIMER = new Timer(ChatLogRemovalTask.class.getSimpleName(), true);
     private static final int MAX_CHATLOG_LINE_LENGTH = 60;
 
+    private final SoundPlaybackManager soundManager = new SoundPlaybackManager();
+    
     public static void main(String[] args) {
         new RunThemAllMain().run();
     }
 
-    public static void playSound(String fileName) {
+    public void playSound(String fileName) {
         if (fileName == null) {
             return;
         }
@@ -58,7 +59,7 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
                 new ChatLogRemovalTask(CHATLOG_REMOVAL_TIMER, getChatLogFile()).run();
             }
             
-            LOG.info("main thread going to sleep");
+            LOG.debug("main thread going to sleep");
             synchronized(this) { wait(); }
         } catch (IOException | IllegalAccessException | InstantiationException | InterruptedException ex) {
             LOG.error("", ex);

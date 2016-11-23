@@ -36,8 +36,13 @@ public class HitBoxClientConnectionManager extends ConnectionManager {
             for (FollowerListener listener : getFollowerListeners()) {
                 client.addFollowerListener(listener);
             }
-            client.connectBlocking();
-            client.joinChannel(config.botname, config.password, config.channel);
+            if (client.connectBlocking()) {
+                LOG.info("connected.");
+                client.joinChannel(config.botname, config.password, config.channel);
+            } else {
+                LOG.error("connect failed");
+                throw new IOException("connect failed");
+            }
         } catch (IOException | IllegalAccessException | InstantiationException | InterruptedException | URISyntaxException ex) {
             LOG.error("", ex);
         }

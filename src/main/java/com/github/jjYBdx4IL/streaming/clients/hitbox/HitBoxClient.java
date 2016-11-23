@@ -63,7 +63,7 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
     private static String getID(String IP) {
         String connectionID = readUrl("http://" + IP + "/socket.io/1/");
         String ID = connectionID.substring(0, connectionID.indexOf(':'));
-        //log.info("connection ID: " + ID);
+        LOG.trace("connection ID: " + ID);
         return ID;
     }
     private static String getToken(String name, String pass) {
@@ -84,7 +84,7 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
         } catch (IOException | JSONException e) {
             LOG.error("", e);
         }
-        //log.info("token: " + token);
+        LOG.trace("token: " + token);
         return token;
     }
     private long chatSessionStartingTime = System.currentTimeMillis();
@@ -98,7 +98,7 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
 
     public HitBoxClient(String name, String pass, String IP) throws URISyntaxException {
         super(new URI("ws://" + IP + "/socket.io/1/websocket/" + getID(IP)), new Draft_10());
-        //log.info("websocket connection URI: " + getURI());
+        LOG.trace("websocket connection URI: " + getURI());
         this.username = name;
         this.pass = pass;
         this.chatListeners = Collections.synchronizedSet(new HashSet<>());
@@ -162,7 +162,7 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
                 }
             }
             if (!messageRecognized) {
-                LOG.info("unhandled message: " + jsonMessage.toString(2));
+                LOG.debug("unhandled message: " + jsonMessage.toString(2));
             }
         } catch (NumberFormatException | NotYetConnectedException | JSONException ex) {
             LOG.error("", ex);
@@ -172,7 +172,7 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        LOG.info("closed, " + reason);
+        LOG.debug("closed, " + reason);
     }
 
     @Override

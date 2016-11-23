@@ -66,7 +66,7 @@ public class TwitchIRCClient implements Runnable {
             BufferedReader br = new BufferedReader(new InputStreamReader(instr));
             
             for (String line = br.readLine(); line != null; line = br.readLine()) {
-                LOG.info("< " + line);
+                LOG.trace("< " + line);
                 lastActivityDetected.set(System.currentTimeMillis());
 
                 Matcher m = STATUSLINE_PATTERN.matcher(line);
@@ -185,12 +185,14 @@ public class TwitchIRCClient implements Runnable {
                 @Override
                 public void onChannelMessageReceived(String from, String channelRcvd, String message) {
                     if (channelRcvd.equals(ircChannelName)) {
-                        LOG.info("msg received on channel " + ircChannelName + ": " + from + ": " + message);
+                        LOG.debug("msg received on channel " + ircChannelName + ": " + from + ": " + message);
                         listener.onChatMessage(from, message);
                     }
                 }
             });
         }
+        
+        LOG.info("Channel " + ircChannelName + " joined.");
     }
 
     // only for testing
@@ -208,7 +210,7 @@ public class TwitchIRCClient implements Runnable {
     }
 
     public synchronized void send(String cmd) throws IOException {
-        LOG.info("> " + cmd);
+        LOG.trace("> " + cmd);
         IOUtils.write(cmd + LF, socket.getOutputStream());
         socket.getOutputStream().flush();
     }
@@ -242,7 +244,7 @@ public class TwitchIRCClient implements Runnable {
             throw new RuntimeException("timed out waiting for code " + retCode);
         }
         removeListener(listener);
-        LOG.info("success: " + cmd);
+        LOG.debug("success: " + cmd);
     }
 
 }

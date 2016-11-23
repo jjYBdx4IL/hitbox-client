@@ -92,7 +92,7 @@ public class GenericConfig {
     void postprocess() {
         if (!new File(filesOutputFolder).isAbsolute()) {
             filesOutputFolder = new File(CFG_DIR, filesOutputFolder).getAbsolutePath();
-            LOG.info("expanded filesOutputFolder to: " + filesOutputFolder);
+            LOG.debug("expanded filesOutputFolder to: " + filesOutputFolder);
         }
         
         for (int i = 0; i < ignore.size(); i++) {

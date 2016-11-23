@@ -27,13 +27,13 @@ public class SoundPlaybackManager {
         // is this sound already scheduled for playback?
         if (lastScheduledPlayedTime >= now) {
             // then there is no need to schedule it again
-            LOG.info("sound already scheduled for playback: " + key);
+            LOG.debug("sound already scheduled for playback: " + key);
             return;
         }
         final long nextPlayTime = lastScheduledPlayedTime + SND_NOTIF_DEAD_TIME;
         final long delayMillis = nextPlayTime > now ? nextPlayTime - now : 0L;
         lastScheduledPlayedTimes.put(key, now + delayMillis);
-        LOG.info(String.format(Locale.ROOT, "scheduling sound playback with %d ms delay: %s", delayMillis, key));
+        LOG.debug(String.format(Locale.ROOT, "scheduling sound playback with %d ms delay: %s", delayMillis, key));
         new SoundPlaybackTask(soundFile).run(delayMillis);
     }
 }

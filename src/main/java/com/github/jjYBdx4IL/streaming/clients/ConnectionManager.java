@@ -20,7 +20,7 @@ public abstract class ConnectionManager extends TimerTask implements ChatListene
     private final Set<ChatListener> chatListeners;
     private final Set<FollowerListener> followerListeners;
 
-    private final Timer timer = new Timer(true);
+    private final Timer timer = new Timer(getClass().getSimpleName(), true);
     
     public ConnectionManager() {
         this.chatListeners = Collections.synchronizedSet(new HashSet<>());

@@ -17,7 +17,7 @@ public class HitBoxClientFactory {
     private static String getIP() {
         JSONArray arr = new JSONArray(HitBoxClient.readUrl("http://api.hitbox.tv/chat/servers.json?redis=true"));
         String serverIp = arr.getJSONObject(0).getString("server_ip");
-        LOG.info("server = " + serverIp);
+        LOG.debug("server = " + serverIp);
         return serverIp;
     }
 
