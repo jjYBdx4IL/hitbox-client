@@ -46,26 +46,28 @@ public class GenericConfig {
         ignore.add(" for example bot names");
     }
     
-    public static Object readConfig(String filename, Class<?> clazz) throws IOException, InstantiationException, IllegalAccessException {
-        File configFile = new File(CFG_DIR, filename);
-
-        XStream xstream = new XStream(new StaxDriver());
-        xstream.autodetectAnnotations(true);
-	//	xstream.registerConverter(new AddressConverter());		
-
-        
-        if (configFile.exists()) {
-            return xstream.fromXML(configFile);
+    public static Object readConfig(String filename, Class<?> clazz) throws IOException {
+        try {
+            File configFile = new File(CFG_DIR, filename);
+            
+            XStream xstream = new XStream(new StaxDriver());
+            xstream.autodetectAnnotations(true);
+            
+            if (configFile.exists()) {
+                return xstream.fromXML(configFile);
+            }
+            
+            // save empty config so user is able to add his details
+            configFile.getParentFile().mkdirs();
+            Object config = clazz.newInstance();
+            String xml = xstream.toXML(config);
+            try (OutputStream os = new FileOutputStream(configFile)) {
+                IOUtils.write(formatXml(xml), os);
+            }
+            return config;
+        } catch (InstantiationException|IllegalAccessException ex) {
+            throw new IOException(ex);
         }
-
-        // save empty config so user is able to add his details
-        configFile.getParentFile().mkdirs();
-        Object config = clazz.newInstance();
-        String xml = xstream.toXML(config);
-        try (OutputStream os = new FileOutputStream(configFile)) {
-            IOUtils.write(formatXml(xml), os);
-        }
-        return config;
     }
     
     public static String formatXml(String xml) {

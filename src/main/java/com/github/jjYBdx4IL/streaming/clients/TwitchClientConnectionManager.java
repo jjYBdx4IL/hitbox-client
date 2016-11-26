@@ -39,7 +39,7 @@ public class TwitchClientConnectionManager extends ConnectionManager {
                 }
             });
             
-        } catch (IOException | IllegalAccessException | InstantiationException | InterruptedException ex) {
+        } catch (IOException | InterruptedException ex) {
             LOG.error("", ex);
         }
     }

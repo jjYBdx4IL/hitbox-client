@@ -43,7 +43,7 @@ public class HitBoxClientConnectionManager extends ConnectionManager {
                 LOG.error("connect failed");
                 throw new IOException("connect failed");
             }
-        } catch (IOException | IllegalAccessException | InstantiationException | InterruptedException | URISyntaxException ex) {
+        } catch (IOException | InterruptedException | URISyntaxException ex) {
             LOG.error("", ex);
         }
     }
