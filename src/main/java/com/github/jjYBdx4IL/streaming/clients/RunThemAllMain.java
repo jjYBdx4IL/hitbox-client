@@ -1,6 +1,5 @@
 package com.github.jjYBdx4IL.streaming.clients;
 
-import com.github.jjYBdx4IL.streaming.clients.fma.FMAClient;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -46,17 +45,15 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
             config = (GenericConfig) GenericConfig.readConfig("generic.xml", GenericConfig.class);
             config.postprocess();
             
-            new FMAClient().start();
-            
             TwitchClientConnectionManager twitchCCM = new TwitchClientConnectionManager();
             twitchCCM.addChatListener(this);
             twitchCCM.addFollowerListener(this);
-//            twitchCCM.start();
+            twitchCCM.start();
             
             HitBoxClientConnectionManager hitBoxCCM = new HitBoxClientConnectionManager();
             hitBoxCCM.addChatListener(this);
             hitBoxCCM.addFollowerListener(this);
-//            hitBoxCCM.start();
+            hitBoxCCM.start();
             
             if (getChatLogFile() != null) {
                 new ChatLogRemovalTask(CHATLOG_REMOVAL_TIMER, getChatLogFile()).run();
