@@ -1,12 +1,21 @@
 package com.github.jjYBdx4IL.streaming.clients;
 
+import java.awt.AWTException;
+import java.awt.Image;
+import java.awt.SystemTray;
+import java.awt.Toolkit;
+import java.awt.TrayIcon;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.Locale;
 import java.util.Timer;
+import javax.swing.SwingUtilities;
+import org.apache.commons.io.IOUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,9 +29,11 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
     private static final Logger LOG = LoggerFactory.getLogger(RunThemAllMain.class);
     private static final Timer CHATLOG_REMOVAL_TIMER = new Timer(ChatLogRemovalTask.class.getSimpleName(), true);
     private static final int MAX_CHATLOG_LINE_LENGTH = 60;
+    public static final String APP_NAME = "streaming-clients";
 
     private final SoundPlaybackManager soundManager = new SoundPlaybackManager();
-    
+    private TrayIcon trayIcon = null;
+
     public static void main(String[] args) {
         new RunThemAllMain().run();
     }
@@ -42,26 +53,30 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
 
     public void run() {
         try {
+            initTray();
+            
             config = (GenericConfig) GenericConfig.readConfig("generic.xml", GenericConfig.class);
             config.postprocess();
-            
+
             TwitchClientConnectionManager twitchCCM = new TwitchClientConnectionManager();
             twitchCCM.addChatListener(this);
             twitchCCM.addFollowerListener(this);
             twitchCCM.start();
-            
+
             HitBoxClientConnectionManager hitBoxCCM = new HitBoxClientConnectionManager();
             hitBoxCCM.addChatListener(this);
             hitBoxCCM.addFollowerListener(this);
             hitBoxCCM.start();
-            
+
             if (getChatLogFile() != null) {
                 new ChatLogRemovalTask(CHATLOG_REMOVAL_TIMER, getChatLogFile()).run();
             }
-            
+
             LOG.debug("main thread going to sleep");
-            synchronized(this) { wait(); }
-        } catch (IOException | InterruptedException ex) {
+            synchronized (this) {
+                wait();
+            }
+        } catch (IOException | InterruptedException | AWTException ex) {
             LOG.error("", ex);
             throw new RuntimeException(ex);
         }
@@ -94,7 +109,7 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
         }
         return new File(config.filesOutputFolder, "chat.log");
     }
-    
+
     public synchronized void logChatMessage(String name, String text) {
         File chatLogFile = getChatLogFile();
         if (chatLogFile == null) {
@@ -124,7 +139,10 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
         } catch (IOException ex) {
             LOG.error("", ex);
         }
-        playSound(config.chatSound);
+        boolean shown = showTrayNotification(name, text);
+        if (!config.chatSoundAsFallbackOnly || !shown) {
+            playSound(config.chatSound);
+        }
     }
 
     @Override
@@ -144,6 +162,38 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
 
     @Override
     public void onUnfollow(String name) {
+    }
+
+    public boolean showTrayNotification(String line1, String line2) {
+        if (trayIcon == null) {
+            return false;
+        }
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                trayIcon.displayMessage(line1, line2, TrayIcon.MessageType.INFO);
+            }
+        });
+        return true;
+    }
+
+    public void initTray() throws AWTException, IOException {
+        if (!SystemTray.isSupported()) {
+            return;
+        }
+
+        SystemTray tray = SystemTray.getSystemTray();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (InputStream is = getClass().getResourceAsStream("arrow_right.png")) {
+            IOUtils.copy(is, baos);
+        }
+
+        Image image = Toolkit.getDefaultToolkit().createImage(baos.toByteArray());
+        trayIcon = new TrayIcon(image, APP_NAME);
+        trayIcon.setImageAutoSize(true);
+        trayIcon.setToolTip(APP_NAME);
+        tray.add(trayIcon);
     }
 
 }

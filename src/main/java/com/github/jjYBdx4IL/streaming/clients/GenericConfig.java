@@ -36,6 +36,7 @@ public class GenericConfig {
     public static final File CFG_DIR = new File(System.getProperty("user.home"), ".java-streaming-clients");
 
     public String chatSound = "replace or delete me";
+    public boolean chatSoundAsFallbackOnly = true;
     public String newFollowerSound = "replace or delete me";
     public String filesOutputFolder = "replace or delete me";
     @XStreamConverter(CommaSeparatedStringListConverter.class)
