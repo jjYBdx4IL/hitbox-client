@@ -34,6 +34,11 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
     private final SoundPlaybackManager soundManager = new SoundPlaybackManager();
     private TrayIcon trayIcon = null;
 
+    private volatile boolean twitchConnected = false;
+    private boolean requireTwitchConnected = true;
+    private volatile boolean hitboxConnected = false;
+    private boolean requireHitboxConnected = true;
+
     public static void main(String[] args) {
         new RunThemAllMain().run();
     }
@@ -54,18 +59,48 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
     public void run() {
         try {
             initTray();
-            
+
             config = (GenericConfig) GenericConfig.readConfig("generic.xml", GenericConfig.class);
             config.postprocess();
 
             TwitchClientConnectionManager twitchCCM = new TwitchClientConnectionManager();
             twitchCCM.addChatListener(this);
             twitchCCM.addFollowerListener(this);
+            twitchCCM.addConnectionListener(new ConnectionAdapter() {
+                @Override
+                public void onConnected() {
+                    if (!twitchConnected) {
+                        twitchConnected = true;
+                        displayNotificationIfAllConnected();
+                    }
+                }
+
+                @Override
+                public void onReconnect() {
+                    twitchConnected = false;
+                    showTrayNotification(APP_NAME, "Twitch connection lost.");
+                }
+            });
             twitchCCM.start();
 
             HitBoxClientConnectionManager hitBoxCCM = new HitBoxClientConnectionManager();
             hitBoxCCM.addChatListener(this);
             hitBoxCCM.addFollowerListener(this);
+            twitchCCM.addConnectionListener(new ConnectionAdapter() {
+                @Override
+                public void onConnected() {
+                    if (!hitboxConnected) {
+                        hitboxConnected = true;
+                        displayNotificationIfAllConnected();
+                    }
+                }
+
+                @Override
+                public void onReconnect() {
+                    hitboxConnected = false;
+                    showTrayNotification(APP_NAME, "HitBox connection lost.");
+                }
+            });
             hitBoxCCM.start();
 
             if (getChatLogFile() != null) {
@@ -194,6 +229,12 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
         trayIcon.setImageAutoSize(true);
         trayIcon.setToolTip(APP_NAME);
         tray.add(trayIcon);
+    }
+
+    private void displayNotificationIfAllConnected() {
+        if ((twitchConnected || !requireTwitchConnected) && (hitboxConnected || !requireHitboxConnected)) {
+            showTrayNotification(APP_NAME, "All clients connected.");
+        }
     }
 
 }

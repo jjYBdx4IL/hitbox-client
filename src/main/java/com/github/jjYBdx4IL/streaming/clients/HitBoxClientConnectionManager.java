@@ -21,6 +21,7 @@ public class HitBoxClientConnectionManager extends ConnectionManager {
     @Override
     public void reconnect() {
         LOG.info("(re)connect");
+        notifyReconnect();
         
         if (client != null) {
             client.shutdown();
@@ -39,6 +40,7 @@ public class HitBoxClientConnectionManager extends ConnectionManager {
             if (client.connectBlocking()) {
                 LOG.info("connected.");
                 client.joinChannel(config.botname, config.password, config.channel);
+                notifyConnected();
             } else {
                 LOG.error("connect failed");
                 throw new IOException("connect failed");

@@ -13,18 +13,23 @@ import org.slf4j.LoggerFactory;
  *
  * @author jjYBdx4IL
  */
-public abstract class ConnectionManager extends TimerTask implements ChatListenerHandler, FollowerListenerHandler {
+public abstract class ConnectionManager extends TimerTask
+        implements ChatListenerHandler, FollowerListenerHandler, ConnectionListenerHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConnectionManager.class);
 
     private final Set<ChatListener> chatListeners;
     private final Set<FollowerListener> followerListeners;
+    private final Set<ConnectionListener> connectionListeners;
 
     private final Timer timer = new Timer(getClass().getSimpleName(), true);
-    
+
+    private boolean connected = false;
+
     public ConnectionManager() {
         this.chatListeners = Collections.synchronizedSet(new HashSet<>());
         this.followerListeners = Collections.synchronizedSet(new HashSet<>());
+        this.connectionListeners = Collections.synchronizedSet(new HashSet<>());
     }
 
     public abstract void reconnect();
@@ -46,11 +51,11 @@ public abstract class ConnectionManager extends TimerTask implements ChatListene
     protected Set<ChatListener> getChatListeners() {
         return Collections.unmodifiableSet(chatListeners);
     }
-    
+
     protected Set<FollowerListener> getFollowerListeners() {
         return Collections.unmodifiableSet(followerListeners);
     }
-    
+
     @Override
     public void addChatListener(ChatListener listener) {
         chatListeners.add(listener);
@@ -70,5 +75,30 @@ public abstract class ConnectionManager extends TimerTask implements ChatListene
     public void removeFollowerListener(FollowerListener listener) {
         followerListeners.remove(listener);
     }
-    
+
+    @Override
+    public void addConnectionListener(ConnectionListener listener) {
+        connectionListeners.add(listener);
+    }
+
+    @Override
+    public void removeConnectionListener(ConnectionListener listener) {
+        connectionListeners.remove(listener);
+    }
+
+    protected void notifyConnected() {
+        connected = true;
+        for (ConnectionListener listener : connectionListeners) {
+            listener.onConnected();
+        }
+    }
+
+    protected void notifyReconnect() {
+        if (connected) {
+            connected = false;
+            for (ConnectionListener listener : connectionListeners) {
+                listener.onReconnect();
+            }
+        }
+    }
 }

@@ -19,6 +19,7 @@ public class TwitchClientConnectionManager extends ConnectionManager {
     @Override
     public void reconnect() {
         LOG.info("(re)connect");
+        notifyReconnect();
         
         if (client != null) {
             client.shutdown();
@@ -38,7 +39,7 @@ public class TwitchClientConnectionManager extends ConnectionManager {
                     }
                 }
             });
-            
+            notifyConnected();
         } catch (IOException | InterruptedException ex) {
             LOG.error("", ex);
         }
