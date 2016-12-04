@@ -18,6 +18,10 @@ We are utlizing our own simple IRC client based on Apache commons-net Telnet imp
 * each sound file does not get played back more than once every 30 secs. if it has been played more recently than 30 secs ago, the next playback will be scheduled accordingly.
 * update HitBox and Twitch game titles based on stream titles at start. This eliminates the need to set the game titles individually via the restream interface, just mention it in the stream title and add the used game titles to the generic.xml config file.
 
+## Twitch OAuth token
+
+* the easiest way to get a valid oath token for all features needed by this program is to get it via another app, ie. http://chatty.github.io/ .
+
 ## General Implementation Structure
 
 There are the specific Twitch, HitBox etc. client implementations. Those get handled by
@@ -30,4 +34,4 @@ structure.
 
 --
 [![Build Status](https://travis-ci.org/jjYBdx4IL/streaming-clients.png?branch=master)](https://travis-ci.org/jjYBdx4IL/streaming-clients)
-devel/java/github/streaming-clients@7146
+devel/java/github/streaming-clients@7147
