@@ -36,6 +36,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.java_websocket.client.WebSocketClient;
@@ -58,7 +59,6 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
     // consider the connection dead when the server does not send anything for 6 mins
     public static final long SERVER_TIMEOUT_MILLIS = 6 * 60 * 1000L;
     private static final String CHANNEL_INFO_API_URI = "http://www.hitbox.tv/api/media/live/%s/list?authToken=%s";
-    private static final String CATEGORY_LIST_API_URI = "http://www.hitbox.tv/api/game/%s";
     private static String token = null;
 
 
@@ -159,8 +159,16 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
         return _reply.livestream[0];
     }
 
+    /**
+     * returns -1 for not found
+     */
     public long getCategoryId(String name) throws IOException {
-        String uri = String.format(Locale.ROOT, CATEGORY_LIST_API_URI, name);
+        URIBuilder b = new URIBuilder();
+        b.setScheme("http");
+        b.setHost("www.hitbox.tv");
+        b.setPath("/api/games");
+        b.setParameter("q", name);
+        String uri = b.toString();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -180,7 +188,19 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
         Reply _reply = gson.fromJson(reply, Reply.class);
         LOG.debug("decoded reply is: " + _reply.toString());
 
-        return _reply.category.category_id;
+        if (_reply.categories == null || _reply.categories.length == 0) {
+            return -1;
+        }
+        
+        // try to find exact match
+        for (Category cat : _reply.categories) {
+            if (name.equalsIgnoreCase(cat.category_name)) {
+                return cat.category_id;
+            }
+        }
+        
+        // else return first match
+        return _reply.categories[0].category_id;
     }
 
     public boolean updateChannelInfo(Livestream payload) throws IOException {
