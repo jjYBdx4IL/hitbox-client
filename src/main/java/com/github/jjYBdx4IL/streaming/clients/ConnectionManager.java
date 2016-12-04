@@ -23,10 +23,12 @@ public abstract class ConnectionManager extends TimerTask
     private final Set<ConnectionListener> connectionListeners;
 
     private final Timer timer = new Timer(getClass().getSimpleName(), true);
+    protected final GenericConfig genericConfig;
 
     private boolean connected = false;
 
-    public ConnectionManager() {
+    public ConnectionManager(GenericConfig genericConfig) {
+        this.genericConfig = genericConfig;
         this.chatListeners = Collections.synchronizedSet(new HashSet<>());
         this.followerListeners = Collections.synchronizedSet(new HashSet<>());
         this.connectionListeners = Collections.synchronizedSet(new HashSet<>());

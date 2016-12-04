@@ -1,8 +1,11 @@
 package com.github.jjYBdx4IL.streaming.clients;
 
 import com.github.jjYBdx4IL.streaming.clients.twitch.TwitchIRCClient;
+import com.github.jjYBdx4IL.streaming.clients.twitch.api.Channel;
+import com.github.jjYBdx4IL.streaming.clients.twitch.api.TwitchRESTClient;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +18,12 @@ public class TwitchClientConnectionManager extends ConnectionManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(TwitchClientConnectionManager.class);
     private TwitchIRCClient client = null;
-    
+    private boolean gameUpdated = false;
+
+    public TwitchClientConnectionManager(GenericConfig config) {
+        super(config);
+    }
+
     @Override
     public void reconnect() {
         LOG.info("(re)connect");
@@ -40,6 +48,7 @@ public class TwitchClientConnectionManager extends ConnectionManager {
                 }
             });
             notifyConnected();
+            updateTwitchGame();
         } catch (IOException | InterruptedException ex) {
             LOG.error("", ex);
         }
@@ -49,5 +58,27 @@ public class TwitchClientConnectionManager extends ConnectionManager {
     public boolean isConnected() {
         return client != null && client.isConnected();
     }
-    
+
+    /**
+     * update twitch game title depending on stream title
+     */
+    private void updateTwitchGame() throws IOException {
+        if (gameUpdated) {
+            return;
+        }
+        gameUpdated = true;
+        
+        TwitchRESTClient client = new TwitchRESTClient();
+        Channel channel = (Channel) client.get(Channel.class);
+        for (String game : genericConfig.games) {
+            if (channel.status.toLowerCase(Locale.ROOT).contains(game.toLowerCase(Locale.ROOT))) {
+                channel.game = game;
+                LOG.info("setting Twitch channel info to " + channel);
+                client.put(channel);
+                break;
+            }
+        }
+    }
+
+
 }

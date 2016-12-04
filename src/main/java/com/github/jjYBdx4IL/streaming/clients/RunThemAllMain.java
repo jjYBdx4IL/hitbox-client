@@ -1,5 +1,10 @@
 package com.github.jjYBdx4IL.streaming.clients;
 
+import com.github.jjYBdx4IL.streaming.clients.hitbox.api.Livestream;
+import com.github.jjYBdx4IL.streaming.clients.hitbox.HitBoxClient;
+import com.github.jjYBdx4IL.streaming.clients.twitch.api.Channel;
+import com.github.jjYBdx4IL.streaming.clients.twitch.api.TwitchRESTClient;
+
 import java.awt.AWTException;
 import java.awt.Image;
 import java.awt.SystemTray;
@@ -14,7 +19,9 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.Locale;
 import java.util.Timer;
+
 import javax.swing.SwingUtilities;
+
 import org.apache.commons.io.IOUtils;
 
 import org.slf4j.Logger;
@@ -63,7 +70,7 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
             config = (GenericConfig) GenericConfig.readConfig("generic.xml", GenericConfig.class);
             config.postprocess();
 
-            TwitchClientConnectionManager twitchCCM = new TwitchClientConnectionManager();
+            TwitchClientConnectionManager twitchCCM = new TwitchClientConnectionManager(config);
             twitchCCM.addChatListener(this);
             twitchCCM.addFollowerListener(this);
             twitchCCM.addConnectionListener(new ConnectionAdapter() {
@@ -83,7 +90,7 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
             });
             twitchCCM.start();
 
-            HitBoxClientConnectionManager hitBoxCCM = new HitBoxClientConnectionManager();
+            HitBoxClientConnectionManager hitBoxCCM = new HitBoxClientConnectionManager(config);
             hitBoxCCM.addChatListener(this);
             hitBoxCCM.addFollowerListener(this);
             twitchCCM.addConnectionListener(new ConnectionAdapter() {
