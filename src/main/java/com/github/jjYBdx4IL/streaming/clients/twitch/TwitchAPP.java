@@ -1,5 +1,6 @@
 package com.github.jjYBdx4IL.streaming.clients.twitch;
 
+import java.awt.Desktop;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -19,8 +20,6 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.github.jjYBdx4IL.utils.awt.Desktop;
 
 /**
  *
@@ -60,7 +59,7 @@ public class TwitchAPP extends AbstractHandler {
             server = new Server(new InetSocketAddress("localhost", 11723));
             server.setHandler(this);
             server.start();
-            Desktop.browse(getOauthURI());
+            Desktop.getDesktop().browse(getOauthURI());
             waitForRequestReceived();
         } catch (Exception ex) {
         	LOG.warn("", ex);

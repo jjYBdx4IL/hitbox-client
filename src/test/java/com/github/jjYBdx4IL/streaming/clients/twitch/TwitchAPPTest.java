@@ -1,6 +1,8 @@
 package com.github.jjYBdx4IL.streaming.clients.twitch;
 
+import com.github.jjYBdx4IL.utils.env.Surefire;
 import java.net.URISyntaxException;
+import org.junit.Assume;
 
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -21,6 +23,8 @@ public class TwitchAPPTest {
     
     @Test
     public void testGetOauthToken() {
+        Assume.assumeTrue(Surefire.isSingleTextExecution());
+        
         LOG.info(new TwitchAPP().getOauthToken());
     }
 

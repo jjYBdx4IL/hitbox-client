@@ -46,7 +46,8 @@ public class GenericConfig {
     public List<String> ignore = new ArrayList<>();
     @XStreamConverter(CommaSeparatedStringListConverter.class)
     public List<String> games = new ArrayList<>();
-
+    public String discordBotToken = "replace or delete me";
+    
     public GenericConfig() {
         ignore.add("comma-separated list of ignored users");
         ignore.add(" for example bot names");
@@ -98,7 +99,7 @@ public class GenericConfig {
         }
     }
 
-    void postprocess() {
+    public void postprocess() {
         if (!new File(filesOutputFolder).isAbsolute()) {
             filesOutputFolder = new File(CFG_DIR, filesOutputFolder).getAbsolutePath();
             LOG.debug("expanded filesOutputFolder to: " + filesOutputFolder);
