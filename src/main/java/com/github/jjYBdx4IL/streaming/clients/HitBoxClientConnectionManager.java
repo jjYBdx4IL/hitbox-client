@@ -36,7 +36,8 @@ public class HitBoxClientConnectionManager extends ConnectionManager {
         }
         
         try {
-            HitBoxConfig config = (HitBoxConfig) GenericConfig.readConfig("hitbox.xml", HitBoxConfig.class);
+            HitBoxConfig config = new HitBoxConfig();
+            config.read();
             client = HitBoxClientFactory.create(config.botname, config.password);
             for (ChatListener listener : getChatListeners()) {
                 client.addChatListener(listener);

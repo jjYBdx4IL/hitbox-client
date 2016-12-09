@@ -38,8 +38,8 @@ public class DiscordAPPTest {
     public void testSomeMethod() throws IOException, LoginException, IllegalArgumentException, InterruptedException {
         Assume.assumeTrue(Surefire.isSingleTextExecution());
         
-        GenericConfig config = (GenericConfig) GenericConfig.readConfig("generic.xml", GenericConfig.class);
-        config.postprocess();
+        GenericConfig config = new GenericConfig();
+        config.read();
 
         JDA jda = new JDABuilder().setAudioEnabled(false).setBotToken(config.discordBotToken).buildBlocking();
 

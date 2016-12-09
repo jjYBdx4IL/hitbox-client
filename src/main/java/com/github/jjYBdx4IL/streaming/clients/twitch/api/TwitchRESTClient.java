@@ -32,7 +32,8 @@ public class TwitchRESTClient {
 
     public TwitchRESTClient() throws IOException {
         this.httpclient = HttpClients.createDefault();
-        this.config = (TwitchConfig) GenericConfig.readConfig("twitch.xml", TwitchConfig.class);
+        this.config = new TwitchConfig();
+        this.config.read();
     }
 
     private String createURI(String channel, Class<? extends TwitchDTO> type) {

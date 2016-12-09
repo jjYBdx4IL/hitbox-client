@@ -35,7 +35,8 @@ public class TwitchClientConnectionManager extends ConnectionManager {
         }
         
         try {
-            TwitchConfig config = (TwitchConfig) GenericConfig.readConfig("twitch.xml", TwitchConfig.class);
+            TwitchConfig config = new TwitchConfig();
+            config.read();
             client = new TwitchIRCClient(config.botname, config.oauthToken);
             client.connect();
             client.joinChannel(config.channel, new TwitchChatListener() {
