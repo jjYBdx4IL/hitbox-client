@@ -17,10 +17,18 @@ import net.dv8tion.jda.entities.PrivateChannel;
 import net.dv8tion.jda.entities.TextChannel;
 import net.dv8tion.jda.entities.User;
 import net.dv8tion.jda.entities.VoiceChannel;
+import net.dv8tion.jda.entities.impl.JDAImpl;
 import net.dv8tion.jda.events.Event;
+import net.dv8tion.jda.events.voice.GenericVoiceEvent;
 import net.dv8tion.jda.events.voice.VoiceJoinEvent;
 import net.dv8tion.jda.events.voice.VoiceLeaveEvent;
+import net.dv8tion.jda.events.voice.VoiceSelfDeafEvent;
+import net.dv8tion.jda.events.voice.VoiceSelfMuteEvent;
 import net.dv8tion.jda.hooks.EventListener;
+import net.dv8tion.jda.requests.WebSocketCustomHandler;
+import net.dv8tion.jda.utils.SimpleLog;
+
+import org.json.JSONObject;
 import org.junit.Assume;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -38,10 +46,20 @@ public class DiscordAPPTest {
     public void testSomeMethod() throws IOException, LoginException, IllegalArgumentException, InterruptedException {
         Assume.assumeTrue(Surefire.isSingleTextExecution());
         
+        SimpleLog.getLog("JDARequester").setLevel(SimpleLog.LEVEL.ALL);
+        
         GenericConfig config = new GenericConfig();
         config.read();
 
         JDA jda = new JDABuilder().setAudioEnabled(false).setBotToken(config.discordBotToken).buildBlocking();
+        ((JDAImpl)jda).getClient().setCustomHandler(new WebSocketCustomHandler() {
+			
+			@Override
+			public boolean handle(JSONObject obj) {
+				LOG.info(obj.toString());
+				return false;
+			}
+		});
 
         for (User user : jda.getUsers()) {
             LOG.info(user.toString());
@@ -72,6 +90,21 @@ public class DiscordAPPTest {
                 if (event instanceof VoiceLeaveEvent) {
                     VoiceLeaveEvent e = (VoiceLeaveEvent) event;
                     LOG.info(String.format(Locale.ROOT, "%s left %s", e.getUser().toString(), e.getGuild().toString()));
+                }
+                if (event instanceof VoiceSelfDeafEvent) {
+                	VoiceSelfDeafEvent e = (VoiceSelfDeafEvent) event;
+                    LOG.info(String.format(Locale.ROOT, "%s self-deafened %s", e.getUser().toString(), e.getGuild().toString()));
+                    
+                }
+                if (event instanceof VoiceSelfMuteEvent) {
+                	VoiceSelfMuteEvent e = (VoiceSelfMuteEvent) event;
+                    LOG.info(String.format(Locale.ROOT, "%s self-muted %s", e.getUser().toString(), e.getGuild().toString()));
+                }
+                if (event instanceof GenericVoiceEvent) {
+                	GenericVoiceEvent e = (GenericVoiceEvent) event;
+	                LOG.info("inVoiceChannel: " + jda.getGuilds().get(0).getVoiceStatusOfUser(e.getUser()).inVoiceChannel());
+	                LOG.info("isDeaf: " + jda.getGuilds().get(0).getVoiceStatusOfUser(e.getUser()).isDeaf());
+	                LOG.info("isMuted: " + jda.getGuilds().get(0).getVoiceStatusOfUser(e.getUser()).isMuted());
                 }
             }
         });
