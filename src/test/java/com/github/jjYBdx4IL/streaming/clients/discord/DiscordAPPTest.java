@@ -1,15 +1,18 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.github.jjYBdx4IL.streaming.clients.discord;
 
-import com.github.jjYBdx4IL.streaming.clients.GenericConfig;
-import com.github.jjYBdx4IL.utils.env.Surefire;
 import java.io.IOException;
 import java.util.Locale;
+
 import javax.security.auth.login.LoginException;
+
+import org.json.JSONObject;
+import org.junit.Assume;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.github.jjYBdx4IL.utils.env.Surefire;
+
 import net.dv8tion.jda.JDA;
 import net.dv8tion.jda.JDABuilder;
 import net.dv8tion.jda.entities.Guild;
@@ -28,12 +31,6 @@ import net.dv8tion.jda.hooks.EventListener;
 import net.dv8tion.jda.requests.WebSocketCustomHandler;
 import net.dv8tion.jda.utils.SimpleLog;
 
-import org.json.JSONObject;
-import org.junit.Assume;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  *
  * @author jjYBdx4IL
@@ -48,10 +45,10 @@ public class DiscordAPPTest {
         
         SimpleLog.getLog("JDARequester").setLevel(SimpleLog.LEVEL.ALL);
         
-        GenericConfig config = new GenericConfig();
+        DiscordConfig config = new DiscordConfig();
         config.read();
 
-        JDA jda = new JDABuilder().setAudioEnabled(false).setBotToken(config.discordBotToken).buildBlocking();
+        JDA jda = new JDABuilder().setAudioEnabled(false).setBotToken(config.botToken).buildBlocking();
         ((JDAImpl)jda).getClient().setCustomHandler(new WebSocketCustomHandler() {
 			
 			@Override

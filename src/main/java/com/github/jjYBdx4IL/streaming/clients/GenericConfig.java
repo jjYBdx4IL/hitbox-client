@@ -27,37 +27,12 @@ public class GenericConfig extends AbstractConfig {
     public List<String> ignore = new ArrayList<>();
     @XStreamConverter(CommaSeparatedStringListConverter.class)
     public List<String> games = new ArrayList<>();
-    public String discordBotToken = DEFAULT_STRING_VALUE;
     
     public GenericConfig() {
         ignore.add("comma-separated list of ignored users");
         ignore.add(" for example bot names");
         games.add("comma-separated list of game titles, will be used to set the stream game title on startup depending on the stream's title");
     }
-    
-//    public static Object readConfig(String filename, Class<?> clazz) throws IOException {
-//        try {
-//            File configFile = new File(CFG_DIR, filename);
-//            
-//            XStream xstream = new XStream(new StaxDriver());
-//            xstream.autodetectAnnotations(true);
-//            
-//            if (configFile.exists()) {
-//                return xstream.fromXML(configFile);
-//            }
-//            
-//            // save empty config so user is able to add his details
-//            configFile.getParentFile().mkdirs();
-//            Object config = clazz.newInstance();
-//            String xml = xstream.toXML(config);
-//            try (OutputStream os = new FileOutputStream(configFile)) {
-//                IOUtils.write(formatXml(xml), os);
-//            }
-//            return config;
-//        } catch (InstantiationException|IllegalAccessException ex) {
-//            throw new IOException(ex);
-//        }
-//    }
     
     @Override
     void postprocess() {

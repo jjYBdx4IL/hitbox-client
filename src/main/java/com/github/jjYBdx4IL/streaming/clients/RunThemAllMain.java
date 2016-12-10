@@ -14,10 +14,14 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.Locale;
 import java.util.Timer;
+
+import javax.security.auth.login.LoginException;
 import javax.swing.SwingUtilities;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.jjYBdx4IL.streaming.clients.discord.DiscordClient;
 
 /**
  *
@@ -106,11 +110,14 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
                 new ChatLogRemovalTask(CHATLOG_REMOVAL_TIMER, getChatLogFile()).run();
             }
 
+            final DiscordClient discordClient = new DiscordClient(trayIcon);
+            discordClient.start();
+            
             LOG.debug("main thread going to sleep");
             synchronized (this) {
                 wait();
             }
-        } catch (IOException | InterruptedException | AWTException ex) {
+        } catch (IOException | InterruptedException | AWTException | LoginException | IllegalArgumentException ex) {
             LOG.error("", ex);
             throw new RuntimeException(ex);
         }
