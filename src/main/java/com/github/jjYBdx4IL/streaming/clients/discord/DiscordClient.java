@@ -39,6 +39,7 @@ public class DiscordClient extends ListenerAdapter implements Closeable {
 	private final TrayIcon trayIcon;
 	private final Image micOn;
 	private final Image micOff;
+	private final DiscordVoiceStatusFrame statusFrame = new DiscordVoiceStatusFrame();
 
 	public DiscordClient(TrayIcon trayIcon) throws FileNotFoundException, IOException {
 		this.trayIcon = trayIcon;
@@ -84,9 +85,17 @@ public class DiscordClient extends ListenerAdapter implements Closeable {
 			}
 		}
 		
+		SwingUtilities.invokeLater(new Runnable(){
+			@Override
+			public void run() {
+				statusFrame.go();
+			}
+		});
+		
 		updateCurrentVoiceStatus();
 		
 		jda.addEventListener(this);
+		
 	}
 	
 	private void updateCurrentVoiceStatus() {
@@ -101,6 +110,7 @@ public class DiscordClient extends ListenerAdapter implements Closeable {
 		
 		currentVoiceStatus = vs.inVoiceChannel() && !vs.isMuted();
 		
+		// update tray icon to reflect voice status
 		SwingUtilities.invokeLater(new Runnable() {
 
 			@Override
@@ -109,6 +119,20 @@ public class DiscordClient extends ListenerAdapter implements Closeable {
 				if (trayIcon.getImage() != desiredImage) {
 					LOG.info("new voice status: " + currentVoiceStatus);
 					trayIcon.setImage(desiredImage);
+				}
+			}
+			
+		});
+		
+		// update discord status display frame
+		SwingUtilities.invokeLater(new Runnable(){
+
+			@Override
+			public void run() {
+				if (currentVoiceStatus) {
+					statusFrame.restart();
+				} else {
+					statusFrame.stop();
 				}
 			}
 			
