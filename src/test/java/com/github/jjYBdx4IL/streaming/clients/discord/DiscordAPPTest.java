@@ -30,6 +30,7 @@ import net.dv8tion.jda.events.voice.VoiceSelfMuteEvent;
 import net.dv8tion.jda.hooks.EventListener;
 import net.dv8tion.jda.requests.WebSocketCustomHandler;
 import net.dv8tion.jda.utils.SimpleLog;
+import net.dv8tion.jda.utils.SimpleLog.Level;
 
 /**
  *
@@ -43,7 +44,7 @@ public class DiscordAPPTest {
     public void testSomeMethod() throws IOException, LoginException, IllegalArgumentException, InterruptedException {
         Assume.assumeTrue(Surefire.isSingleTextExecution());
         
-        SimpleLog.getLog("JDARequester").setLevel(SimpleLog.LEVEL.ALL);
+        SimpleLog.getLog("JDARequester").setLevel(Level.ALL);
         
         DiscordConfig config = new DiscordConfig();
         config.read();

@@ -58,6 +58,7 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
     }
 
     private GenericConfig config = null;
+	private DiscordClient discordClient;
 
     public void run() {
         try {
@@ -110,7 +111,7 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
                 new ChatLogRemovalTask(CHATLOG_REMOVAL_TIMER, getChatLogFile()).run();
             }
 
-            final DiscordClient discordClient = new DiscordClient(trayIcon);
+            discordClient = new DiscordClient(trayIcon);
             discordClient.start();
             
             LOG.debug("main thread going to sleep");

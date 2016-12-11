@@ -195,15 +195,6 @@ public class TwitchIRCClient implements Runnable {
         LOG.info("Channel " + ircChannelName + " joined.");
     }
 
-    // only for testing
-    private void loop() {
-        try {
-            reader.join();
-        } catch (InterruptedException ex) {
-            LOG.error("", ex);
-        }
-    }
-
     public synchronized void sendNoLog(String cmd) throws IOException {
         IOUtils.write(cmd + LF, socket.getOutputStream());
         socket.getOutputStream().flush();

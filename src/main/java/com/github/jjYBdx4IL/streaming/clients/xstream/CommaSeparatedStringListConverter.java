@@ -13,7 +13,8 @@ public class CommaSeparatedStringListConverter implements SingleValueConverter {
 
     public static final String SEPARATOR = ",";
     
-    @Override
+    @SuppressWarnings("rawtypes")
+	@Override
     public boolean canConvert(Class clazz) {
         return List.class.isAssignableFrom(clazz);
     }
@@ -30,7 +31,7 @@ public class CommaSeparatedStringListConverter implements SingleValueConverter {
 
     @Override
     public String toString(Object arg0) {
-        List collection = (List) arg0;
+        List<?> collection = (List<?>) arg0;
         StringBuffer sb = new StringBuffer();
         boolean first = true;
         for (Object object : collection) {

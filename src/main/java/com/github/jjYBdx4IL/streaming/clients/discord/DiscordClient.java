@@ -35,7 +35,7 @@ public class DiscordClient extends ListenerAdapter implements Closeable {
 
 	protected final DiscordConfig config;
 	protected JDA jda = null;
-	private volatile boolean currentVoiceStatus = false;
+	private volatile boolean currentVoiceStatus = true;
 	private final TrayIcon trayIcon;
 	private final Image micOn;
 	private final Image micOff;
@@ -99,7 +99,7 @@ public class DiscordClient extends ListenerAdapter implements Closeable {
 		LOG.debug("isDeaf: " + vs.isDeaf());
 		LOG.debug("isMuted: " + vs.isMuted());
 		
-		currentVoiceStatus = vs.inVoiceChannel() && !vs.isDeaf() && !vs.isMuted();
+		currentVoiceStatus = vs.inVoiceChannel() && !vs.isMuted();
 		
 		SwingUtilities.invokeLater(new Runnable() {
 

@@ -1,9 +1,5 @@
 package com.github.jjYBdx4IL.streaming.clients.twitch.api;
 
-import com.github.jjYBdx4IL.streaming.clients.GenericConfig;
-import com.github.jjYBdx4IL.streaming.clients.TwitchConfig;
-import com.google.gson.Gson;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,6 +15,9 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.jjYBdx4IL.streaming.clients.TwitchConfig;
+import com.google.gson.Gson;
 
 /**
  *

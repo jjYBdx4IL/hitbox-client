@@ -119,7 +119,6 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
     private final Pattern UNFOLLOW_PATTERN = Pattern.compile("<user>(.*)</user> unfollowed");
     private final AtomicLong lastServerActivityTimestamp = new AtomicLong(System.currentTimeMillis());
     private final String username;
-    private final String pass;
     private final HttpClient httpclient = HttpClients.createDefault();
     private final GsonBuilder gsonBuilder;
 
@@ -127,7 +126,6 @@ public class HitBoxClient extends WebSocketClient implements ChatListenerHandler
         super(new URI("ws://" + IP + "/socket.io/1/websocket/" + getID(IP)), new Draft_10());
         LOG.trace("websocket connection URI: " + getURI());
         this.username = name;
-        this.pass = pass;
         this.chatListeners = Collections.synchronizedSet(new HashSet<>());
         this.followerListeners = Collections.synchronizedSet(new HashSet<>());
 
