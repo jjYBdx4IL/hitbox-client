@@ -20,7 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.jjYBdx4IL.streaming.clients.graphics.TextWithOutlineBlinkingEffectPanel.BlinkMode;
-import com.github.jjYBdx4IL.utils.env.CI;
+import com.github.jjYBdx4IL.utils.env.Surefire;
 
 public class TextBlinkingEffectTest implements IAnimPainter {
 	
@@ -35,7 +35,7 @@ public class TextBlinkingEffectTest implements IAnimPainter {
     
     @Test
     public void test() throws IOException, URISyntaxException, InterruptedException, InvocationTargetException {
-        Assume.assumeFalse(CI.isCI());
+        Assume.assumeTrue(Surefire.isSingleTextExecution());
         
         SwingUtilities.invokeAndWait(new Runnable() {
             @Override
