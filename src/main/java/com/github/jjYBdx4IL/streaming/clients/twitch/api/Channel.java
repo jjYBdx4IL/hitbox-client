@@ -11,7 +11,7 @@ public class Channel extends TwitchDTO {
 //    public boolean mature;
 //    public String broadcaster_language;
 //    public String language;
-//    public String display_name;
+    public String display_name;
 //    public long _id;
 //    public String name;
 //    public String created_at;
@@ -21,11 +21,10 @@ public class Channel extends TwitchDTO {
 //    public String url;
 //    public long views;
 //    public long followers;
-
-    @Override
-    public String toString() {
-        return "Channel{" + "status=" + status + ", game=" + game + '}';
-    }
-
+    
+	@Override
+	public String toString() {
+		return "Channel [status=" + status + ", game=" + game + ", display_name=" + display_name + "]";
+	}
 
 }

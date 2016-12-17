@@ -70,12 +70,12 @@ public class TwitchClientConnectionManager extends ConnectionManager {
         gameUpdated = true;
         
         TwitchRESTClient client = new TwitchRESTClient();
-        Channel channel = (Channel) client.get(Channel.class);
+        Channel channel = client.getChannelStatus();
         for (String game : genericConfig.games) {
             if (channel.status.toLowerCase(Locale.ROOT).contains(game.toLowerCase(Locale.ROOT))) {
                 channel.game = game;
                 LOG.info("setting Twitch channel info to " + channel);
-                client.put(channel);
+                client.putChannelStatus(channel);
                 break;
             }
         }

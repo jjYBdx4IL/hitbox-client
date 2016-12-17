@@ -4,6 +4,10 @@ import com.github.jjYBdx4IL.utils.env.Surefire;
 import com.google.gson.Gson;
 
 import static org.junit.Assert.*;
+
+import java.io.IOException;
+import java.util.List;
+
 import org.junit.Assume;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -18,11 +22,11 @@ public class TwitchRESTClientTest {
     private static final Logger LOG = LoggerFactory.getLogger(TwitchRESTClientTest.class);
 
     @Test
-    public void testGet() throws Exception {
+    public void testGetAndUpdateChannelStatus() throws Exception {
         Assume.assumeTrue(Surefire.isSingleTextExecution());
 
         TwitchRESTClient client = new TwitchRESTClient();
-        Channel channel = (Channel) client.get(Channel.class);
+        Channel channel = client.getChannelStatus();
         assertNotNull(channel);
         LOG.info(channel.toString());
 
@@ -31,7 +35,20 @@ public class TwitchRESTClientTest {
 
         channel.status = "test";
         channel.game = "abs";
-        client.put(channel);
+        client.putChannelStatus(channel);
     }
+    
+    @Test
+    public void testGetFollowedLiveStreams() throws IOException {
+        Assume.assumeTrue(Surefire.isSingleTextExecution());
+
+        TwitchRESTClient client = new TwitchRESTClient();
+        List<Channel> channels = client.getFollowedLiveStreams(Stream.TYPE.live);
+        assertNotNull(channels);
+        for (Channel channel : channels) {
+        	LOG.info(channel.toString());
+        }
+    }
+    
 
 }

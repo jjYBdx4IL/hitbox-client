@@ -36,17 +36,13 @@ public class TwitchIRCClient implements Runnable {
     private final Socket socket = new Socket();
     private final String botname;
     private final String password;
-    private final Set<IRCStatusListener> statusListeners;
-    private final Set<IRCCommandListener> commandListeners;
-    private final Set<IRCChannelMessageListener> channelMessageListeners;
+    private final Set<ITwitchIRCListener> listeners;
     private Thread reader;
     private final AtomicLong lastActivityDetected = new AtomicLong(-1L);
     private int nConnects = 0;
 
     public TwitchIRCClient(String botname, String password) {
-        this.statusListeners = Collections.synchronizedSet(new HashSet<>());
-        this.commandListeners = Collections.synchronizedSet(new HashSet<>());
-        this.channelMessageListeners = Collections.synchronizedSet(new HashSet<>());
+        this.listeners = Collections.synchronizedSet(new HashSet<>());
         this.botname = botname;
         this.password = password;
     }
@@ -71,7 +67,7 @@ public class TwitchIRCClient implements Runnable {
 
                 Matcher m = STATUSLINE_PATTERN.matcher(line);
                 if (m.find()) {
-                    for (IRCStatusListener listener : statusListeners) {
+                    for (ITwitchIRCListener listener : this.listeners) {
                         listener.onStatusLineReceived(m.group(1), Integer.valueOf(m.group(2)), m.group(3), m.group(4));
                     }
                     continue;
@@ -79,14 +75,14 @@ public class TwitchIRCClient implements Runnable {
 
                 m = COMMANDLINE_PATTERN.matcher(line);
                 if (m.find()) {
-                    for (IRCCommandListener listener : commandListeners) {
+                    for (ITwitchIRCListener listener : this.listeners) {
                         listener.onCommandReceived(m.group(1), m.group(2));
                     }
                 }
 
                 m = CHANNELMSG_PATTERN.matcher(line);
                 if (m.find()) {
-                    for (IRCChannelMessageListener listener : channelMessageListeners) {
+                    for (ITwitchIRCListener listener : this.listeners) {
                         listener.onChannelMessageReceived(m.group(1), m.group(2), m.group(3));
                     }
                 }
@@ -102,28 +98,12 @@ public class TwitchIRCClient implements Runnable {
         }
     }
 
-    public synchronized void addListener(IRCChannelMessageListener listener) {
-        channelMessageListeners.add(listener);
+    public synchronized void addListener(ITwitchIRCListener listener) {
+        this.listeners.add(listener);
     }
 
-    public synchronized void removeListener(IRCChannelMessageListener listener) {
-        channelMessageListeners.remove(listener);
-    }
-
-    public synchronized void addListener(IRCCommandListener listener) {
-        commandListeners.add(listener);
-    }
-
-    public synchronized void removeListener(IRCCommandListener listener) {
-        commandListeners.remove(listener);
-    }
-
-    public synchronized void addListener(IRCStatusListener listener) {
-        statusListeners.add(listener);
-    }
-
-    public synchronized void removeListener(IRCStatusListener listener) {
-        statusListeners.remove(listener);
+    public synchronized void removeListener(ITwitchIRCListener listener) {
+        this.listeners.remove(listener);
     }
 
     public synchronized void connect() throws IOException, InterruptedException {
@@ -135,7 +115,7 @@ public class TwitchIRCClient implements Runnable {
         nConnects++;
 
         // PING handler
-        addListener(new IRCCommandListener() {
+        addListener(new TwitchIRCListenerAdapter() {
             @Override
             public void onCommandReceived(String command, String args) {
                 try {
@@ -166,7 +146,7 @@ public class TwitchIRCClient implements Runnable {
             }
         }
         try {
-            if (socket.isConnected()) {
+            if (socket != null && socket.isConnected()) {
                 socket.close();
             }
         } catch (IOException ex) {
@@ -181,7 +161,7 @@ public class TwitchIRCClient implements Runnable {
         sendAndWait("JOIN " + ircChannelName, 366);
 
         if (listener != null) {
-            addListener(new IRCChannelMessageListener() {
+            addListener(new TwitchIRCListenerAdapter() {
                 @Override
                 public void onChannelMessageReceived(String from, String channelRcvd, String message) {
                     if (channelRcvd.equals(ircChannelName)) {
@@ -208,7 +188,7 @@ public class TwitchIRCClient implements Runnable {
 
     public synchronized void sendAndWait(String cmd, int retCode) throws IOException {
         AtomicBoolean retCodeReceived = new AtomicBoolean(false);
-        IRCStatusListener listener = new IRCStatusListener() {
+        TwitchIRCListenerAdapter listener = new TwitchIRCListenerAdapter() {
             @Override
             public void onStatusLineReceived(String from, int code, String to, String args) {
                 if (code == retCode) {

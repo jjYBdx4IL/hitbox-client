@@ -3,10 +3,14 @@ package com.github.jjYBdx4IL.streaming.clients.twitch.api;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
@@ -17,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.jjYBdx4IL.streaming.clients.TwitchConfig;
+import com.github.jjYBdx4IL.streaming.clients.twitch.TwitchAPP;
 import com.google.gson.Gson;
 
 /**
@@ -35,24 +40,65 @@ public class TwitchRESTClient {
         this.config.read();
     }
 
-    private String createURI(String channel, Class<? extends TwitchDTO> type) {
-        if (channel == null || type == null) {
+    private String createURI(String pathExt, String... params) {
+        if (pathExt == null) {
             throw new IllegalArgumentException();
+        }
+        if (params.length % 2 != 0) {
+        	throw new IllegalArgumentException();
         }
 
         URIBuilder b = new URIBuilder();
         b.setScheme("https");
         b.setHost("api.twitch.tv");
         b.addParameter("oauth_token", config.oauthToken.substring(config.oauthToken.indexOf(":") + 1));
-        b.setPath(String.format(Locale.ROOT, "/kraken/channels/%s", channel.toLowerCase(Locale.ROOT)));
+        b.setPath(String.format(Locale.ROOT, "/kraken/%s", pathExt));
+        for (int i=0; i<params.length; i+=2) {
+        	b.addParameter(params[i], params[i+1]);
+        }
 
         String uri = b.toString();
         LOG.debug("constructed uri: " + uri);
         return uri;
     }
+    
+    /**
+     * @throws URISyntaxException 
+     * limited to 100
+     * @throws IOException 
+     * @throws  
+     */
+    public List<Channel> getFollowedLiveStreams(Stream.TYPE type) throws IOException {
+        String uri = createURI("streams/followed", "limit", "100", "offset", "0", "stream_type", type.name());
 
-    public Object get(Class<? extends TwitchDTO> type) throws IOException {
-        String uri = createURI(config.channel, type);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        HttpGet httpGet = new HttpGet(uri);
+//        httpGet.addHeader("Client-ID", TwitchAPP.APP_ID);
+//        httpGet.addHeader("Accept", "application/vnd.twitchtv.v5+json");
+        HttpResponse response = httpclient.execute(httpGet);
+        if (response.getStatusLine().getStatusCode() != 200) {
+            throw new IOException("url returned status code " + response.getStatusLine().getStatusCode() + ": " + uri);
+        }
+        try (InputStream is = response.getEntity().getContent()) {
+            IOUtils.copy(is, baos);
+        }
+
+        byte[] data = baos.toByteArray();
+        String reply = new String(data);
+        LOG.debug("reply is: " + reply);
+        Gson gson = new Gson();
+        FollowedStreamsReply _reply = gson.fromJson(reply, FollowedStreamsReply.class);
+        
+        List<Channel> channels = new ArrayList<>();
+        for (Stream stream : _reply.streams) {
+        	channels.add(stream.channel);
+        }
+        return channels;
+    }
+
+    public Channel getChannelStatus() throws IOException {
+        String uri = createURI("channels/" + config.channel.toLowerCase(Locale.ROOT));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -69,11 +115,11 @@ public class TwitchRESTClient {
         String reply = new String(data);
         LOG.debug("reply is: " + reply);
         Gson gson = new Gson();
-        return gson.fromJson(reply, type);
+        return gson.fromJson(reply, Channel.class);
     }
 
-    public void put(Channel payload) throws IOException {
-        String uri = createURI(config.channel, payload.getClass());
+    public void putChannelStatus(Channel payload) throws IOException {
+        String uri = createURI("channels/" + config.channel.toLowerCase(Locale.ROOT));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
