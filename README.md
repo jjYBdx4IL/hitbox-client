@@ -34,4 +34,4 @@ structure.
 
 --
 [![Build Status](https://travis-ci.org/jjYBdx4IL/streaming-clients.png?branch=master)](https://travis-ci.org/jjYBdx4IL/streaming-clients)
-devel/java/github/streaming-clients@7182
+devel/java/github/streaming-clients@7222

@@ -107,12 +107,19 @@ public class RunThemAllMain implements ChatListener, FollowerListener {
             });
             hitBoxCCM.start();
 
+            BeamProClientConnectionManager beamProCCM = new BeamProClientConnectionManager(config);
+            beamProCCM.addChatListener(this);
+            beamProCCM.start();
+            
             if (getChatLogFile() != null) {
                 new ChatLogRemovalTask(CHATLOG_REMOVAL_TIMER, getChatLogFile()).run();
             }
 
             discordClient = new DiscordClient(trayIcon);
             discordClient.start();
+            
+            // hotkeys
+            //new HotKeyConfig().init();
             
             LOG.debug("main thread going to sleep");
             synchronized (this) {

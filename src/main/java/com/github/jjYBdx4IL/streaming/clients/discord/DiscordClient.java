@@ -108,7 +108,7 @@ public class DiscordClient extends ListenerAdapter implements Closeable {
 		LOG.debug("isDeaf: " + vs.isDeaf());
 		LOG.debug("isMuted: " + vs.isMuted());
 		
-		currentVoiceStatus = vs.inVoiceChannel() && !vs.isMuted();
+		currentVoiceStatus = vs.inVoiceChannel() && !vs.isDeaf();
 		
 		// update tray icon to reflect voice status
 		SwingUtilities.invokeLater(new Runnable() {
