@@ -44,6 +44,8 @@
                         <configuration>
                             <url>https://github.com/DV8FromTheWorld/JDA/archive/v2.3.0.zip</url>
                             <md5>4be1e11a866efe60f058077cdeeda94e</md5>
+<!--                             <url>https://github.com/DV8FromTheWorld/JDA/archive/v3.8.1.zip</url> -->
+<!--                             <md5>b3f2a8ab5a3bdbd239a736d167b99958</md5> -->
                             <!--<outputDirectory>${project.build.directory}/generated-sources/JDA</outputDirectory>-->
                         </configuration>
                     </execution>
